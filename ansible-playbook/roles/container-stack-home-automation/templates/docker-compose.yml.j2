@@ -11,6 +11,8 @@ services:
     privileged: true
     networks:
       - server_network
+    ports:
+      - 8123:8123
     environment:
         DISABLE_JEMALLOC: 1
 
@@ -19,9 +21,12 @@ services:
     container_name: esphome
     volumes:
       - {{ esphome_config_path }}:/config
+      - {{ ha_server_container_stack_location }}/esphome/cache:/cache
       - /etc/localtime:/etc/localtime:ro
     networks:
       - server_network
+    ports:
+      - 6052:6052
     restart: unless-stopped
     privileged: true
 
