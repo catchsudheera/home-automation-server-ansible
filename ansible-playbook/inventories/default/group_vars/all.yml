@@ -1,0 +1,28 @@
+---
+# GLOBAL
+gv_server_timezone: Europe/Amsterdam
+
+# USER
+ansible_user: ubuntu
+gv_local_ha_user: ha-user
+gv_local_ha_uid: 1005
+gv_local_ha_group: home-automation-server-users
+gv_local_ha_gid: 1005
+gv_local_ha_user_home: "/home/{{ gv_local_ha_user }}"
+
+# Storage location type. Options : [local, nfs]
+gv_storage_location_type: local
+
+## LOCAL
+gv_server_data_root_local_mount_path: /mnt/server_data
+
+## NFS - uncomment and configure following for NFS
+
+#gv_nfs_server_address: freenas.local
+#gv_server_data_root_local_mount_path: /mnt/server_data
+#gv_server_data_remote_path: /mnt/NAS-root/dutchhome-server-data
+
+
+
+
+

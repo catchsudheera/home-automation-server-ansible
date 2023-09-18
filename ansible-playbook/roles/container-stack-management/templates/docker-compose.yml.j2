@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: autoheal
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    environment:
+      - AUTOHEAL_INTERVAL=30
+      - CURL_TIMEOUT=30
+      - AUTOHEAL_CONTAINER_LABEL=all
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    network_mode: host
+    command: -H unix:///var/run/docker.sock
+    restart: unless-stopped
+    ports:
+      - 8005:8000
+      - 9005:9000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - {{ portainer_config_path }}:/data

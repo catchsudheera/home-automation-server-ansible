@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/raspberrypi4-homeassistant:stable
+    container_name: homeassistant
+    volumes:
+      - {{ homeassistant_config_path }}:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    environment:
+        DISABLE_JEMALLOC: 1
+
+  esphome:
+    image: esphome/esphome:latest
+    container_name: esphome
+    volumes:
+      - {{ esphome_config_path }}:/config
+      - /etc/localtime:/etc/localtime:ro
+    network_mode: host
+    restart: unless-stopped
+    privileged: true
+

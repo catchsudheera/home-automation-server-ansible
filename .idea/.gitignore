@@ -1,0 +1,5 @@
+# Default ignored files
+/workspace.xml
+/.idea/
+/home-automation-server-ansible.iml
+/.idea/*
