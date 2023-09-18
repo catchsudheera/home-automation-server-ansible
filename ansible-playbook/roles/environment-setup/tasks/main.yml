@@ -50,7 +50,7 @@
         update_cache: yes
 
 - name: Add docker network for application containers to use
-  shell: "docker network inspect {{ docker_bridge_network_name }} || docker network create {{ docker_bridge_network_name }}"
+  shell: "docker network inspect {{ docker_network_name }} || docker network create {{ docker_network_name }}"
 
 - name: Create server data directories
   block:

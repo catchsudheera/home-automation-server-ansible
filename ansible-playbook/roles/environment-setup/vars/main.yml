@@ -7,7 +7,7 @@ group_gid: "{{ gv_local_ha_gid }}"
 user_home: "{{ gv_local_ha_user_home }}"
 
 # Docker network setup
-docker_bridge_network_name: "{{ gv_docker_bridge_network_name }}"
+docker_network_name: "{{ gv_docker_network_name }}"
 
 # Directory setup
 
