@@ -38,9 +38,9 @@
       args:
         creates: /usr/bin/docker
 
-    - name: Adding '{{ media_user_name }}' to the docker group
+    - name: Adding '{{ user_name }}' to the docker group
       user:
-         name: '{{ media_user_name }}'
+         name: '{{ user_name }}'
          groups: docker
          append: yes
 
@@ -58,14 +58,14 @@
         nfs_server_address: "{{ server_data_nfs_server_address }}"
         remote_dir_path: "{{ server_data_remote_dir_path }}"
         local_mount_path: "{{ server_data_local_mount_path }}"
-        mount_dir_user: "{{ media_user_name }}"
-        mount_dir_group: "{{ media_group_name }}"
+        mount_dir_user: "{{ user_name }}"
+        mount_dir_group: "{{ group_name }}"
       when: server_data_location_type == 'nfs'
 
     - name: Create server data LOCAL
       file:
         path: "{{ server_data_local_mount_path }}"
         state: directory
-        owner: "{{ media_user_name }}"
-        group: "{{ media_group_name }}"
+        owner: "{{ user_name }}"
+        group: "{{ group_name }}"
       when: server_data_location_type == 'local'
