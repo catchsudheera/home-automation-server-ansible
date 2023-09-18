@@ -4,7 +4,8 @@ services:
   autoheal:
     image: willfarrell/autoheal:latest
     container_name: autoheal
-    network_mode: host
+    networks:
+      - {{ docker_network_name }}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/localtime:/etc/localtime:ro
@@ -17,7 +18,7 @@ services:
     image: portainer/portainer-ce:latest
     container_name: portainer
     networks:
-      - media_server_network
+      - {{ docker_network_name }}
     command: -H unix:///var/run/docker.sock
     restart: unless-stopped
     ports:
