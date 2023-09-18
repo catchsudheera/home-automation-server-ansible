@@ -21,7 +21,7 @@ services:
       - {{ esphome_config_path }}:/config
       - /etc/localtime:/etc/localtime:ro
     networks:
-      - server_networks
+      - server_network
     restart: unless-stopped
     privileged: true
 
