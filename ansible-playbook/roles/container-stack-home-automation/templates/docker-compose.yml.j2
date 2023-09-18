@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     privileged: true
     networks:
-      - {{ docker_network_name }}
+      - server_network
     environment:
         DISABLE_JEMALLOC: 1
 
@@ -21,7 +21,7 @@ services:
       - {{ esphome_config_path }}:/config
       - /etc/localtime:/etc/localtime:ro
     networks:
-      - {{ docker_network_name }}
+      - server_networkss
     restart: unless-stopped
     privileged: true
 
