@@ -8,7 +8,7 @@ server_data_user_uid: "{{ gv_local_ha_uid }}"
 server_data_group_gid: "{{ gv_local_ha_gid }}"
 
 # Container stack
-container_data_root: "{{ gv_container_ha_data_root }}"
+container_data_root: "{{ gv_container_data_root }}"
 ha_server_container_stack_location: "{{ gv_local_ha_user_home }}/.container-stack-home-automation"
 
 # HomeAssistant
