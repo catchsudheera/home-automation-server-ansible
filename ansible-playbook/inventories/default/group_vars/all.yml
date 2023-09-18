@@ -10,6 +10,8 @@ gv_local_ha_group: home-automation-server-users
 gv_local_ha_gid: 1005
 gv_local_ha_user_home: "/home/{{ gv_local_ha_user }}"
 
+gv_docker_network_name: ha-server-network
+
 # Storage location type. Options : [local, nfs]
 gv_storage_location_type: local
 

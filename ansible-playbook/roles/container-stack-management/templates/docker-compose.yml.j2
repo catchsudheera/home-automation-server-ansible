@@ -16,7 +16,8 @@ services:
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
-    network_mode: host
+    networks:
+      - media_server_network
     command: -H unix:///var/run/docker.sock
     restart: unless-stopped
     ports:
@@ -25,3 +26,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - {{ portainer_config_path }}:/data
+
+networks:
+  server_network:
+    external:
+      name: {{ docker_network_name }}

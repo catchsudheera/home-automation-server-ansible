@@ -11,6 +11,8 @@ server_data_group_gid: "{{ gv_local_ha_gid }}"
 container_data_root: "{{ gv_container_data_root }}"
 ha_server_container_stack_location: "{{ gv_local_ha_user_home }}/.container-stack-home-automation"
 
+docker_network_name: "{{ gv_docker_network_name }}"
+
 # HomeAssistant
 homeassistant_config_path: "{{ container_data_root }}/homeassistant/config"
 
