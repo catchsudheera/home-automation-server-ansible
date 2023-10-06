@@ -11,10 +11,7 @@ services:
       - /dev/bus/usb:/dev/bus/usb
     restart: unless-stopped
     privileged: true
-    networks:
-      - server_network
-    ports:
-      - 8123:8123
+    network_mode: host
     environment:
         DISABLE_JEMALLOC: 1
 
@@ -25,14 +22,6 @@ services:
       - {{ esphome_config_path }}:/config
       - {{ ha_server_container_stack_location }}/esphome/cache:/cache
       - /etc/localtime:/etc/localtime:ro
-    networks:
-      - server_network
-    ports:
-      - 6052:6052
+    network_mode: host
     restart: unless-stopped
     privileged: true
-
-networks:
-  server_network:
-    external:
-      name: {{ docker_network_name }}
