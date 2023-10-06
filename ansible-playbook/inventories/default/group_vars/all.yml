@@ -20,6 +20,10 @@ gv_server_data_root_local_mount_path: /mnt/server_data
 
 ## NFS - uncomment and configure following for NFS
 
+#gv_nfs_server_address: <nfs-address>
+#gv_server_data_root_local_mount_path: /mnt/server_data
+#gv_server_data_remote_path: /mnt/your-remote-mount-path
+
 # COMMON
 gv_container_data_dir_name: container_data
 gv_container_data_root: "{{ gv_server_data_root_local_mount_path }}/{{ gv_container_data_dir_name | default('container_data') }}"
