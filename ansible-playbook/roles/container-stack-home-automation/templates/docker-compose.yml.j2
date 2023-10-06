@@ -7,6 +7,8 @@ services:
     volumes:
       - {{ homeassistant_config_path }}:/config
       - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+      - /dev/bus/usb:/dev/bus/usb
     restart: unless-stopped
     privileged: true
     networks:
