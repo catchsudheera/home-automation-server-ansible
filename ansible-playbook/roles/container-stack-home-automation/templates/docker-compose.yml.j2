@@ -25,3 +25,21 @@ services:
     network_mode: host
     restart: unless-stopped
     privileged: true
+
+  scrypted:
+    container_name: scrypted
+    image: koush/scrypted:latest
+    environment:
+      - SCRYPTED_WEBHOOK_UPDATE_AUTHORIZATION=Bearer 81674931065847170175967965216021
+      - SCRYPTED_WEBHOOK_UPDATE=http://localhost:10444/v1/update
+    volumes:
+      - /var/run/dbus:/var/run/dbus
+      - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
+      - {{ scrypted_config_path }}:/server/volume
+    network_mode: host
+    restart: unless-stopped
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "10m"
+            max-file: "10"

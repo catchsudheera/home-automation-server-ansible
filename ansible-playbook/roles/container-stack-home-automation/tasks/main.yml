@@ -27,7 +27,17 @@
     owner: "{{ server_data_dir_user }}"
     group: "{{ server_data_dir_group }}"
 
+- name: Create Scrypted directories
+  file:
+    path: "{{ scrypted_config_path }}"
+    state: directory
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
 
+- name: Avahi Daemon for Scrypted
+  apt:
+    name: avahi-daemon
+    update_cache: yes
 
 - name: Copy Docker compose template
   template:

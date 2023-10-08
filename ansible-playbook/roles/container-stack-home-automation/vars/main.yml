@@ -19,6 +19,9 @@ homeassistant_config_path: "{{ container_data_root }}/homeassistant/config"
 # ESP home
 esphome_config_path: "{{ container_data_root }}/esphome/config"
 
+# Scrypted
+scrypted_config_path: "{{ container_data_root }}/scrypted/config"
+
 
 
 
