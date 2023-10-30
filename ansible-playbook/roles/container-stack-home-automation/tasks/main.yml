@@ -66,7 +66,6 @@
     group: "{{ server_data_dir_group }}"
   loop:
     - "{{ grafana_config_path }}"
-    - "{{ grafana_password_path }}"
 
 - name: Write Grafana admin password to a file
   copy:
@@ -117,6 +116,12 @@
     - name: Start Docker containers using docker-compose after the config update
       community.docker.docker_compose:
         project_src: "{{ ha_server_container_stack_location }}"
+
+- name: Ensure grafana password is set correctly by resetting
+  community.docker.docker_container_exec:
+    container: grafana
+    command: "grafana cli admin reset-admin-password pass {{ ui_login_admin_password }}"
+    chdir: /root
 
 - name: Adding the Systemd units for docker-compose management
   import_role:

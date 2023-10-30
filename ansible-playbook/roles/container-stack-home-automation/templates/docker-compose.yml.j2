@@ -71,18 +71,13 @@ services:
     environment:
       - TZ={{ server_timezone }}
       - GF_SECURITY_ADMIN_USER={{ ui_login_admin_username }}
-      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_admin_password
     restart: unless-stopped
     user: "{{ server_data_user_uid }}"
     network_mode: host
     volumes:
       - {{ grafana_config_path }}:/var/lib/grafana
       - /etc/localtime:/etc/localtime:ro
-    secrets:
-      - grafana_admin_password
 
 secrets:
    influxdb_admin_password:
      file: "{{ influxdb_password_path }}/admin_password.txt"
-   grafana_admin_password:
-     file: "{{ grafana_password_path }}/admin_password.txt"
