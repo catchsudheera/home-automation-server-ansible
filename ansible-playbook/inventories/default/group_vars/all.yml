@@ -10,6 +10,10 @@ gv_local_ha_group: home-automation-server-users
 gv_local_ha_gid: 1005
 gv_local_ha_user_home: "/home/{{ gv_local_ha_user }}"
 
+# credentials for influxDB and Grafana (Not for HomeAssistant)
+gv_ui_login_admin_username: admin-username
+gv_ui_login_admin_password: "admin-password"
+
 gv_docker_network_name: ha-server-network
 
 # Storage location type. Options : [local, nfs]
