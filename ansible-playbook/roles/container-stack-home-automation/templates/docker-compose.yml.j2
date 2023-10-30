@@ -51,7 +51,7 @@ services:
       - TZ={{ server_timezone }}
       - DOCKER_INFLUXDB_INIT_MODE=setup
       - DOCKER_INFLUXDB_INIT_USERNAME={{ ui_login_admin_username }}
-      - DOCKER_INFLUXDB_INIT_PASSWORD=/run/secrets/influxdb_admin_password
+      - DOCKER_INFLUXDB_INIT_PASSWORD_FILE=/run/secrets/influxdb_admin_password
       - DOCKER_INFLUXDB_INIT_ORG={{ influxdb_org_name }}
       - DOCKER_INFLUXDB_INIT_BUCKET={{ influxdb_bucket_name }}
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN={{ influxdb_api_token }}
@@ -60,6 +60,8 @@ services:
     volumes:
       - {{ influxdb_config_path }}:/var/lib/influxdb
       - /etc/localtime:/etc/localtime:ro
+    secrets:
+      - influxdb_admin_password
 
   grafana:
     container_name: grafana
@@ -68,14 +70,16 @@ services:
       - influxdb
     environment:
       - TZ={{ server_timezone }}
-      - GF_SECURITY_ADMIN_USER="{{ ui_login_admin_username }}"
-      - GF_SECURITY_ADMIN_PASSWORD=/run/secrets/grafana_admin_password
+      - GF_SECURITY_ADMIN_USER={{ ui_login_admin_username }}
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_admin_password
     restart: unless-stopped
     user: "{{ server_data_user_uid }}"
     network_mode: host
     volumes:
       - {{ grafana_config_path }}:/var/lib/grafana
       - /etc/localtime:/etc/localtime:ro
+    secrets:
+      - grafana_admin_password
 
 secrets:
    influxdb_admin_password:
