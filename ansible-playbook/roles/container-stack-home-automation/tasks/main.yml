@@ -39,6 +39,40 @@
     name: avahi-daemon
     update_cache: yes
 
+- name: Create InfluxDB directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+  loop:
+    - "{{ influxdb_config_path }}"
+    - "{{ influxdb_password_path }}"
+
+- name: Write InfluxDB admin password to a file
+  copy:
+    content: "{{ ui_login_admin_password }}"
+    dest: "{{ influxdb_password_path }}/admin_password.txt"
+
+- name: Generating a API token for influxdb integration of homeassistant
+  set_fact:
+    influxdb_api_token: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+
+- name: Create Grafana directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+  loop:
+    - "{{ grafana_config_path }}"
+    - "{{ grafana_password_path }}"
+
+- name: Write Grafana admin password to a file
+  copy:
+    content: "{{ ui_login_admin_password }}"
+    dest: "{{ grafana_password_path }}/admin_password.txt"
+
 - name: Copy Docker compose template
   template:
     src: docker-compose.yml.j2
@@ -50,6 +84,39 @@
   community.docker.docker_compose:
     project_src: "{{ ha_server_container_stack_location }}"
   tags: start-stacks
+
+- name: Adding additional configs - should be done after the initial start of the containers
+  block:
+    - name: Stopping using docker compose for config update
+      community.docker.docker_compose:
+        project_src: "{{ ha_server_container_stack_location }}"
+        state: absent
+
+    - name: Add Homeassistant config file for influxdb
+      template:
+        src: influxdb.yml.j2
+        dest: "{{ homeassistant_config_path }}/influxdb.yml"
+        owner: "{{ server_data_dir_user }}"
+        group: "{{ server_data_dir_group }}"
+
+    - name: Check home assistant main config file for influxdb import
+      lineinfile:
+        state: absent
+        path: "{{ homeassistant_config_path }}/configuration.yaml"
+        regexp: "^influxdb: !include influxdb.yml$"
+      check_mode: true
+      changed_when: false
+      register: influxdb_imported_in_ha_config
+
+    - name: Add influxdb import line to home assistant main confile file
+      lineinfile:
+        path: "{{ homeassistant_config_path }}/configuration.yaml"
+        line: "influxdb: !include influxdb.yml"
+      when: influxdb_imported_in_ha_config.found == 0
+
+    - name: Start Docker containers using docker-compose after the config update
+      community.docker.docker_compose:
+        project_src: "{{ ha_server_container_stack_location }}"
 
 - name: Adding the Systemd units for docker-compose management
   import_role:

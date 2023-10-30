@@ -43,3 +43,42 @@ services:
         options:
             max-size: "10m"
             max-file: "10"
+
+  influxdb:
+    container_name: influxdb
+    image: influxdb:latest
+    environment:
+      - TZ={{ server_timezone }}
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME={{ ui_login_admin_username }}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=/run/secrets/influxdb_admin_password
+      - DOCKER_INFLUXDB_INIT_ORG={{ influxdb_org_name }}
+      - DOCKER_INFLUXDB_INIT_BUCKET={{ influxdb_bucket_name }}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN={{ influxdb_api_token }}
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - {{ influxdb_config_path }}:/var/lib/influxdb
+      - /etc/localtime:/etc/localtime:ro
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    depends_on:
+      - influxdb
+    environment:
+      - TZ={{ server_timezone }}
+      - GF_SECURITY_ADMIN_USER="{{ ui_login_admin_username }}"
+      - GF_SECURITY_ADMIN_PASSWORD=/run/secrets/grafana_admin_password
+    restart: unless-stopped
+    user: "{{ server_data_user_uid }}"
+    network_mode: host
+    volumes:
+      - {{ grafana_config_path }}:/var/lib/grafana
+      - /etc/localtime:/etc/localtime:ro
+
+secrets:
+   influxdb_admin_password:
+     file: "{{ influxdb_password_path }}/admin_password.txt"
+   grafana_admin_password:
+     file: "{{ grafana_password_path }}/admin_password.txt"

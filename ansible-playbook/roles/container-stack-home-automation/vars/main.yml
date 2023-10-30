@@ -7,6 +7,9 @@ server_data_dir_group: "{{ gv_local_ha_group }}"
 server_data_user_uid: "{{ gv_local_ha_uid }}"
 server_data_group_gid: "{{ gv_local_ha_gid }}"
 
+ui_login_admin_username: "{{ gv_ui_login_admin_username }}"
+ui_login_admin_password: "{{ gv_ui_login_admin_password }}"
+
 # Container stack
 container_data_root: "{{ gv_container_data_root }}"
 ha_server_container_stack_location: "{{ gv_local_ha_user_home }}/.container-stack-home-automation"
@@ -21,6 +24,17 @@ esphome_config_path: "{{ container_data_root }}/esphome/config"
 
 # Scrypted
 scrypted_config_path: "{{ container_data_root }}/scrypted/config"
+
+# InfluxDB
+influxdb_config_path: "{{ container_data_root }}/influxdb/config"
+influxdb_password_path: "{{ container_data_root }}/influxdb/passwords"
+influxdb_org_name: home
+influxdb_bucket_name: home-assistant-sensors
+
+# Grafana
+grafana_config_path: "{{ container_data_root }}/grafana/config"
+grafana_password_path: "{{ container_data_root }}/grafana/passwords"
+
 
 
 

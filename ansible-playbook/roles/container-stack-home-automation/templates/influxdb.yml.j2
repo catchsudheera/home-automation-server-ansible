@@ -1,0 +1,13 @@
+influxdb:
+  api_version: 2
+  ssl: false
+  host: localhost
+  port: 8086
+  token: {{ influxdb_api_token }}
+  organization: {{ influxdb_org_name }}
+  bucket: {{ influxdb_bucket_name }}
+  tags:
+    source: HA
+  tags_attributes:
+    - home_assistant_server
+  default_measurement: units
