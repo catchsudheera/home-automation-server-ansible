@@ -66,11 +66,49 @@
     group: "{{ server_data_dir_group }}"
   loop:
     - "{{ grafana_config_path }}"
+    - "{{ grafana_password_path }}"
 
 - name: Write Grafana admin password to a file
   copy:
     content: "{{ ui_login_admin_password }}"
     dest: "{{ grafana_password_path }}/admin_password.txt"
+
+- name: Create Mosquitto directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+  loop:
+    - "{{ mosquitto_config_path }}/config"
+    - "{{ mosquitto_config_path }}/data"
+    - "{{ mosquitto_config_path }}/log"
+
+- name: Copy Mosquitto config file
+  copy:
+    src: mosquitto.conf
+    dest: "{{ mosquitto_config_path }}/config/mosquitto.conf"
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+
+- name: Check wether the mosquitto password file exist
+  stat:
+    path: "{{ mosquitto_config_path }}/config/password.txt"
+  register: mosquitto_password_hash_file
+
+- name: Mosquitto password generate and write hash file
+  block:
+    - name: Generate hass user password
+      script:
+        cmd: "mosquitto_password_generate.sh hass {{ mosquitto_hass_password }}"
+      register: mosquitto_password_hash_file_content
+
+    - name: Write mosquitto password file
+      copy:
+        content: "{{ mosquitto_password_hash_file_content.stdout_lines[0] }}\n"
+        dest: "{{ mosquitto_config_path }}/config/password.txt"
+        mode: '0700'
+  when: not mosquitto_password_hash_file.stat.exists
 
 - name: Copy Docker compose template
   template:
@@ -120,8 +158,7 @@
 - name: Ensure grafana password is set correctly by resetting
   community.docker.docker_container_exec:
     container: grafana
-    command: "grafana cli admin reset-admin-password pass {{ ui_login_admin_password }}"
-    chdir: /root
+    command: "grafana cli admin reset-admin-password '{{ ui_login_admin_password }}'"
 
 - name: Adding the Systemd units for docker-compose management
   import_role:

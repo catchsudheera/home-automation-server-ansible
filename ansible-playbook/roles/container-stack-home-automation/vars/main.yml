@@ -35,6 +35,11 @@ influxdb_bucket_name: home-assistant-sensors
 grafana_config_path: "{{ container_data_root }}/grafana/config"
 grafana_password_path: "{{ container_data_root }}/grafana/passwords"
 
+# Mosquitto
+mosquitto_config_path: "{{ container_data_root }}/mosquitto"
+mosquitto_hass_password: "{{ gv_mosquitto_hass_password }}"
+
+
 
 
 

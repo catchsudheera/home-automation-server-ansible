@@ -78,6 +78,17 @@ services:
       - {{ grafana_config_path }}:/var/lib/grafana
       - /etc/localtime:/etc/localtime:ro
 
+  mosquitto:
+     container_name: mosquitto
+     image: eclipse-mosquitto:latest
+     volumes:
+       - {{ mosquitto_config_path }}/config:/mosquitto/config
+       - {{ mosquitto_config_path }}/data:/mosquitto/data
+       - {{ mosquitto_config_path }}/log:/mosquitto/log
+     user: "{{ server_data_user_uid }}"
+     network_mode: host
+     restart: unless-stopped
+
 secrets:
    influxdb_admin_password:
      file: "{{ influxdb_password_path }}/admin_password.txt"
