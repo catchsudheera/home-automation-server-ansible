@@ -5,3 +5,5 @@
 /.idea/*
 # Default ignored files
 /shelf/
+/modules.xml
+/vcs.xml
