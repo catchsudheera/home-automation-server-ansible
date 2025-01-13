@@ -1,0 +1,17 @@
+---
+server_timezone: "{{ gv_server_timezone }}"
+
+# User
+server_data_dir_user: "{{ gv_local_ha_user }}"
+server_data_dir_group: "{{ gv_local_ha_group }}"
+server_data_user_uid: "{{ gv_local_ha_uid }}"
+server_data_group_gid: "{{ gv_local_ha_gid }}"
+
+# Container stack
+container_data_root: "{{ gv_container_data_root }}"
+matter_server_container_stack_location: "{{ gv_local_ha_user_home }}/.container-stack-matter"
+
+docker_network_name: "{{ gv_docker_network_name }}"
+
+# HomeAssistant
+matter_config_path: "{{ container_data_root }}/matter/config"

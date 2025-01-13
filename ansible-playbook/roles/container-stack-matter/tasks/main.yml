@@ -1,14 +1,14 @@
 ---
 - name: Create stack root directory
   file:
-    path: "{{ management_container_stack_location }}"
+    path: "{{ matter_server_container_stack_location }}"
     state: directory
     owner: "{{ server_data_dir_user }}"
     group: "{{ server_data_dir_group }}"
 
-- name: Create portainer directories
+- name: Create Matter Server directories
   file:
-    path: "{{ portainer_config_path }}"
+    path: "{{ matter_config_path }}"
     state: directory
     owner: "{{ server_data_dir_user }}"
     group: "{{ server_data_dir_group }}"
@@ -16,37 +16,37 @@
 - name: Copy Docker compose template
   template:
     src: docker-compose.yml.j2
-    dest: "{{ management_container_stack_location }}/docker-compose.yml"
+    dest: "{{ matter_server_container_stack_location }}/docker-compose.yml"
     owner: "{{ server_data_dir_user }}"
     group: "{{ server_data_dir_group }}"
 
 - name: Start Docker containers using docker-compose
   community.docker.docker_compose_v2:
-    project_src: "{{ management_container_stack_location }}"
+    project_src: "{{ matter_server_container_stack_location }}"
   tags: start-stacks
 
 - name: Adding the Systemd units for docker-compose management
   import_role:
     name: docker-compose-systemd
   vars:
-    docker_compose_dir_path: "{{ management_container_stack_location }}"
-    stack_name: container-stack-management
+    docker_compose_dir_path: "{{ matter_server_container_stack_location }}"
+    stack_name: container-stack-matter
 
 - name: Stop Docker containers if running
   block:
     - name: Check whether the docker file exist
       stat:
-        path: "{{ management_container_stack_location }}/docker-compose.yml"
-      register: management_container_stack_location_docker_compose_file
+        path: "{{ matter_server_container_stack_location }}/docker-compose.yml"
+      register: matter_server_container_stack_location_docker_compose_file
 
     - name: Check validity of compose file
-      shell: "docker compose -f {{ management_container_stack_location }}/docker-compose.yml config"
-      register: management_container_stack_docker_compose_file_validate
+      shell: "docker compose -f {{ matter_server_container_stack_location }}/docker-compose.yml config"
+      register: ha_server_container_stack_docker_compose_file_validate
       ignore_errors: yes
 
     - name: Stopping using docker compose
       community.docker.docker_compose_v2:
-        project_src: "{{ management_container_stack_location }}"
+        project_src: "{{ matter_server_container_stack_location }}"
         state: absent
-      when: management_container_stack_location_docker_compose_file.stat.exists and management_container_stack_docker_compose_file_validate.failed|bool != true
+      when: matter_server_container_stack_location_docker_compose_file.stat.exists and ha_server_container_stack_docker_compose_file_validate.failed|bool != true
   tags: [ 'never', 'stop-stacks' ]

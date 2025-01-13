@@ -118,14 +118,14 @@
     group: "{{ server_data_dir_group }}"
 
 - name: Start Docker containers using docker-compose
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     project_src: "{{ ha_server_container_stack_location }}"
   tags: start-stacks
 
 - name: Adding additional configs - should be done after the initial start of the containers
   block:
     - name: Stopping using docker compose for config update
-      community.docker.docker_compose:
+      community.docker.docker_compose_v2:
         project_src: "{{ ha_server_container_stack_location }}"
         state: absent
 
@@ -152,7 +152,7 @@
       when: influxdb_imported_in_ha_config.found == 0
 
     - name: Start Docker containers using docker-compose after the config update
-      community.docker.docker_compose:
+      community.docker.docker_compose_v2:
         project_src: "{{ ha_server_container_stack_location }}"
 
 - name: Ensure grafana password is set correctly by resetting
@@ -175,12 +175,12 @@
       register: ha_server_container_stack_location_docker_compose_file
 
     - name: Check validity of compose file
-      shell: "docker-compose -f {{ ha_server_container_stack_location }}/docker-compose.yml config"
+      shell: "docker compose -f {{ ha_server_container_stack_location }}/docker-compose.yml config"
       register: ha_server_container_stack_docker_compose_file_validate
       ignore_errors: yes
 
     - name: Stopping using docker compose
-      community.docker.docker_compose:
+      community.docker.docker_compose_v2:
         project_src: "{{ ha_server_container_stack_location }}"
         state: absent
       when: ha_server_container_stack_location_docker_compose_file.stat.exists and ha_server_container_stack_docker_compose_file_validate.failed|bool != true

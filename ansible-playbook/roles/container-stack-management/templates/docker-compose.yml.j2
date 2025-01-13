@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   autoheal:
     image: willfarrell/autoheal:latest
@@ -30,5 +28,5 @@ services:
 
 networks:
   server_network:
-    external:
-      name: {{ docker_network_name }}
+    name: {{ docker_network_name }}
+    external: true
