@@ -7,6 +7,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
       - /dev/bus/usb:/dev/bus/usb
+      - /home/{{ server_data_dir_user }}/.ssh:/root/.ssh:ro
     restart: unless-stopped
     privileged: true
     network_mode: host
