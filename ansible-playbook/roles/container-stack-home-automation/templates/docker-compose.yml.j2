@@ -1,6 +1,6 @@
 services:
   homeassistant:
-    image: ghcr.io/home-assistant/raspberrypi4-homeassistant:stable
+    image: homeassistant/home-assistant:stable
     container_name: homeassistant
     volumes:
       - {{ homeassistant_config_path }}:/config
