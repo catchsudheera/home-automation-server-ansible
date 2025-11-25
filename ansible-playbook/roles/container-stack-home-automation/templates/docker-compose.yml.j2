@@ -14,6 +14,22 @@ services:
     environment:
         DISABLE_JEMALLOC: 1
 
+  music-assistant-server:
+    image: ghcr.io/music-assistant/server:latest
+    container_name: musicassistant
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - {{ musicassistant_data_path }}:/data/
+      - /etc/localtime:/etc/localtime:ro
+    cap_add:
+      - SYS_ADMIN
+      - DAC_READ_SEARCH
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      - LOG_LEVEL=info
+
   esphome:
     image: esphome/esphome:latest
     container_name: esphome
