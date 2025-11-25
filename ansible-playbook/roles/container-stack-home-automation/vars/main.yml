@@ -19,6 +19,9 @@ docker_network_name: "{{ gv_docker_network_name }}"
 # HomeAssistant
 homeassistant_config_path: "{{ container_data_root }}/homeassistant/config"
 
+# MusicAssistant
+musicassistant_data_path: "{{ container_data_root }}/musicassistant/data"
+
 # ESP home
 esphome_config_path: "{{ container_data_root }}/esphome/config"
 
