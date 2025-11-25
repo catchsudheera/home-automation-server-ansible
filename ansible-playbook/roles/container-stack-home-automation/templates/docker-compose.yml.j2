@@ -30,6 +30,13 @@ services:
     environment:
       - LOG_LEVEL=info
 
+  bgutil-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider:1.2.1
+    container_name: bgutil-provider
+    network_mode: host
+    init: true
+    restart: unless-stopped
+
   esphome:
     image: esphome/esphome:latest
     container_name: esphome
