@@ -38,7 +38,7 @@ gv_mosquitto_hass_password: your-password
 ## Dockhand
 gv_dockhand_server_url: wss://192.168.1.10:3000/api/hawser/connect
 gv_dockhand_server_token: your_secret_token_here
-gv_dockhand_agent_name: media-server
+gv_dockhand_agent_name: home-automation-server
 
 
 
