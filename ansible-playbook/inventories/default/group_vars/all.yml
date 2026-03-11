@@ -35,6 +35,11 @@ gv_container_data_root: "{{ gv_server_data_root_local_mount_path }}/{{ gv_contai
 # Mosquitto
 gv_mosquitto_hass_password: your-password
 
+## Dockhand
+gv_dockhand_server_url: wss://192.168.1.10:3000/api/hawser/connect
+gv_dockhand_server_token: your_secret_token_here
+gv_dockhand_agent_name: home-automation-server
+
 
 
 

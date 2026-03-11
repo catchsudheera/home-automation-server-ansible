@@ -1,30 +1,18 @@
 services:
-  autoheal:
-    image: willfarrell/autoheal:latest
-    container_name: autoheal
-    networks:
-      - server_network
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /etc/localtime:/etc/localtime:ro
-    restart: unless-stopped
+  dockhand-hawser:
+    image: ghcr.io/finsys/hawser:latest
+    container_name: dockhand-hawser
     environment:
-      - AUTOHEAL_INTERVAL=30
-      - CURL_TIMEOUT=30
-      - AUTOHEAL_CONTAINER_LABEL=all
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: portainer
-    networks:
-      - server_network
-    command: -H unix:///var/run/docker.sock
-    restart: unless-stopped
-    ports:
-      - 8005:8000
-      - 9005:9000
+      - DOCKHAND_SERVER_URL={{ dockhand_server_url }}
+      - TOKEN={{ dockhand_server_token }}
+      - AGENT_NAME={{ dockhand_agent_name }}
+      - SKIP_DF_COLLECTION=false
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - {{ portainer_config_path }}:/data
+      - {{ dockhand_hawser_config_path }}:/data/stacks
+    networks:
+      - server_network
+    restart: always
 
 networks:
   server_network:
