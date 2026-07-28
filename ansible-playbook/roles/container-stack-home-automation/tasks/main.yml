@@ -49,9 +49,36 @@
     content: "{{ ui_login_admin_password }}"
     dest: "{{ influxdb_password_path }}/admin_password.txt"
 
-- name: Generating a API token for influxdb integration of homeassistant
+- name: Check whether the influxdb API token file exist
+  stat:
+    path: "{{ influxdb_password_path }}/api_token.txt"
+  register: influxdb_api_token_file
+
+- name: Create the influxdb API token file - only on first time setup
+  block:
+    - name: Salvage token from an already deployed compose file
+      shell: "grep -o 'DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=.*' {{ ha_server_container_stack_location }}/docker-compose.yml | cut -d= -f2"
+      register: influxdb_api_token_salvaged
+      failed_when: false
+      changed_when: false
+
+    - name: Write influxdb API token file
+      copy:
+        content: "{{ influxdb_api_token_salvaged.stdout | trim if (influxdb_api_token_salvaged.rc == 0 and influxdb_api_token_salvaged.stdout | trim | length > 0) else lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+        dest: "{{ influxdb_password_path }}/api_token.txt"
+        owner: "{{ server_data_dir_user }}"
+        group: "{{ server_data_dir_group }}"
+        mode: '0600'
+  when: not influxdb_api_token_file.stat.exists
+
+- name: Read the influxdb API token from the token file
+  slurp:
+    src: "{{ influxdb_password_path }}/api_token.txt"
+  register: influxdb_api_token_file_content
+
+- name: Set the influxdb API token fact
   set_fact:
-    influxdb_api_token: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+    influxdb_api_token: "{{ influxdb_api_token_file_content.content | b64decode | trim }}"
 
 - name: Create Grafana directories
   file:
