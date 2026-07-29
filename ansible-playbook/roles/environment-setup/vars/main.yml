@@ -1,4 +1,6 @@
 ---
+server_timezone: "{{ gv_server_timezone }}"
+
 # User setup
 user_name: "{{ gv_local_ha_user }}"
 user_uid: "{{ gv_local_ha_uid }}"

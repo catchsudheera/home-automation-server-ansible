@@ -30,6 +30,7 @@ evcc_data_path: "{{ container_data_root }}/evcc/data"
 
 # InfluxDB
 influxdb_config_path: "{{ container_data_root }}/influxdb/config"
+influxdb_etc_path: "{{ container_data_root }}/influxdb/etc"
 influxdb_password_path: "{{ container_data_root }}/influxdb/passwords"
 influxdb_org_name: home
 influxdb_bucket_name: home-assistant-sensors

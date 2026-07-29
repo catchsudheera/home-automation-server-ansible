@@ -1,4 +1,13 @@
 ---
+- name: Check current timezone
+  command: timedatectl show -p Timezone --value
+  register: current_timezone
+  changed_when: false
+
+- name: Set server timezone
+  command: "timedatectl set-timezone {{ server_timezone }}"
+  when: current_timezone.stdout != server_timezone
+
 - name: Create User and Group
   block:
     - name: Create group

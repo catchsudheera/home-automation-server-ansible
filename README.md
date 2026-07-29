@@ -53,10 +53,21 @@ chown 1005:1005 /mnt/NAS-root/home-automation-server-data
 *Shares → UNIX (NFS) Shares → Add*
 
 - **Path**: `/mnt/NAS-root/home-automation-server-data`
-- **Maproot User**: `root`, **Maproot Group**: `root` — the playbook (running via sudo)
-  must be able to create files and chown them to uid 1005 over NFS, so root must not be
-  squashed.
+- **Maproot User / Maproot Group**: leave **empty**
+- **Mapall User**: `ha-user`, **Mapall Group**: `home-automation-server-users` — create
+  this user/group on the NAS first with uid/gid `1005`, matching `gv_local_ha_uid` /
+  `gv_local_ha_gid`. With Mapall, every operation from the client (root included) executes
+  as this user on the NAS, so all files are force-owned `1005:1005` regardless of who
+  writes them.
 - Optionally restrict **Hosts** to the home automation server's address.
+
+Implications of the Mapall setup (all verified against this playbook):
+
+- The playbook's `owner:`/`group:` chowns to uid/gid 1005 succeed as no-ops.
+- A chown to **any other** uid/gid over NFS fails with `Operation not permitted` —
+  containers writing to this share must not run as root or as any other uid and expect to
+  chown (this is why influxdb, grafana and mosquitto run with `user: 1005` in the compose
+  file).
 
 Enable the NFS service (*System → Services → NFS*). Enabling **NFSv4** in the NFS service
 options is recommended; the clients auto-negotiate the highest version offered, and the

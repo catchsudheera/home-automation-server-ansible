@@ -77,9 +77,11 @@ services:
       - DOCKER_INFLUXDB_INIT_BUCKET={{ influxdb_bucket_name }}
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN={{ influxdb_api_token }}
     restart: unless-stopped
+    user: "{{ server_data_user_uid }}:{{ server_data_group_gid }}"
     network_mode: host
     volumes:
-      - {{ influxdb_config_path }}:/var/lib/influxdb
+      - {{ influxdb_config_path }}:/var/lib/influxdb2
+      - {{ influxdb_etc_path }}:/etc/influxdb2
       - /etc/localtime:/etc/localtime:ro
     secrets:
       - influxdb_admin_password
