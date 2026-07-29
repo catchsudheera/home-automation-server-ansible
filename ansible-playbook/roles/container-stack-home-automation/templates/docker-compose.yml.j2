@@ -15,7 +15,7 @@ services:
         DISABLE_JEMALLOC: 1
 
   music-assistant-server:
-    image: ghcr.io/music-assistant/server:latest
+    image: ghcr.io/music-assistant/server:2.7.0b15
     container_name: musicassistant
     restart: unless-stopped
     network_mode: host
@@ -37,6 +37,21 @@ services:
     init: true
     restart: unless-stopped
 
+  evcc:
+    image: evcc/evcc:latest
+    container_name: evcc
+    command:
+      - evcc
+    user: "{{ server_data_user_uid }}:{{ server_data_group_gid }}"
+    environment:
+      - TZ={{ server_timezone }}
+      - EVCC_DATABASE_DSN=/data/evcc.db
+    volumes:
+      - {{ evcc_data_path }}:/data
+      - /etc/localtime:/etc/localtime:ro
+    network_mode: host
+    restart: unless-stopped
+
   esphome:
     image: esphome/esphome:latest
     container_name: esphome
@@ -44,31 +59,15 @@ services:
       - {{ esphome_config_path }}:/config
       - {{ ha_server_container_stack_location }}/esphome/cache:/cache
       - /etc/localtime:/etc/localtime:ro
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
     network_mode: host
     restart: unless-stopped
     privileged: true
 
-  scrypted:
-    container_name: scrypted
-    image: koush/scrypted:latest
-    environment:
-      - SCRYPTED_WEBHOOK_UPDATE_AUTHORIZATION=Bearer 81674931065847170175967965216021
-      - SCRYPTED_WEBHOOK_UPDATE=http://localhost:10444/v1/update
-    volumes:
-      - /var/run/dbus:/var/run/dbus
-      - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
-      - {{ scrypted_config_path }}:/server/volume
-    network_mode: host
-    restart: unless-stopped
-    logging:
-        driver: "json-file"
-        options:
-            max-size: "10m"
-            max-file: "10"
-
   influxdb:
     container_name: influxdb
-    image: influxdb:latest
+    image: influxdb:2.8.0
     environment:
       - TZ={{ server_timezone }}
       - DOCKER_INFLUXDB_INIT_MODE=setup

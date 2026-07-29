@@ -25,8 +25,8 @@ musicassistant_data_path: "{{ container_data_root }}/musicassistant/data"
 # ESP home
 esphome_config_path: "{{ container_data_root }}/esphome/config"
 
-# Scrypted
-scrypted_config_path: "{{ container_data_root }}/scrypted/config"
+# EVCC
+evcc_data_path: "{{ container_data_root }}/evcc/data"
 
 # InfluxDB
 influxdb_config_path: "{{ container_data_root }}/influxdb/config"
