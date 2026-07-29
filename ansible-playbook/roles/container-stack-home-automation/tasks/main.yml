@@ -153,6 +153,11 @@
 
 - name: Adding additional configs - should be done after the initial start of the containers
   block:
+    - name: Wait for Home Assistant to create its main config file - takes a while on first boot
+      wait_for:
+        path: "{{ homeassistant_config_path }}/configuration.yaml"
+        timeout: 300
+
     - name: Stopping using docker compose for config update
       community.docker.docker_compose_v2:
         project_src: "{{ ha_server_container_stack_location }}"

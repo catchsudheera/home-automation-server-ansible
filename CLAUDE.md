@@ -20,3 +20,14 @@ Ansible playbook that provisions the home automation server (`ha-server.home`) w
 Conventions: compose files are deployed to hidden dirs in `/home/ha-user/` (`~/.container-stack-*`); persistent container data lives under `/mnt/server_data/container_data/<app>/`.
 
 Entry points: `install.sh` (full run), `start-all.sh` / `stop-all.sh` (tagged runs with `start-stacks` / `stop-stacks`).
+
+## NAS datasets for this playbook (NFS storage)
+
+ZFS datasets on the NAS (`nas-server.home`, pool `NAS-root`) that back `/mnt/server_data` **must** be configured like the prod dataset:
+
+```
+zfs set acltype=posix NAS-root/<dataset>
+zfs set aclinherit=discard NAS-root/<dataset>
+```
+
+With the pool-default `acltype=nfsv4` + `aclinherit=passthrough`, every file the playbook creates over NFS inherits NFSv4 ACEs, and the NFS server then rejects the `owner:`/`group:` chown in Ansible's copy/template tasks with `chown failed: [Errno 1] Operation not permitted` — while directories chown fine, making it look intermittent. Symptom to recognize: `ls -l` on the mount shows a trailing `+` on files (ACLs attached). Fix: set the two properties above, delete the ACL-bearing tree, re-run the playbook. (Diagnosed July 2026 on `test-dataset`; applies to any NFS version.)
