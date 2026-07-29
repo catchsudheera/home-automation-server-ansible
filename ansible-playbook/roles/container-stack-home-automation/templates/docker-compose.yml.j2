@@ -37,6 +37,21 @@ services:
     init: true
     restart: unless-stopped
 
+  evcc:
+    image: evcc/evcc:latest
+    container_name: evcc
+    command:
+      - evcc
+    user: "{{ server_data_user_uid }}:{{ server_data_group_gid }}"
+    environment:
+      - TZ={{ server_timezone }}
+      - EVCC_DATABASE_DSN=/data/evcc.db
+    volumes:
+      - {{ evcc_data_path }}:/data
+      - /etc/localtime:/etc/localtime:ro
+    network_mode: host
+    restart: unless-stopped
+
   esphome:
     image: esphome/esphome:latest
     container_name: esphome
