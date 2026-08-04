@@ -97,6 +97,15 @@
   loop:
     - "{{ grafana_config_path }}"
     - "{{ grafana_password_path }}"
+    - "{{ grafana_provisioning_path }}"
+    # The provisioning dir replaces the one shipped in the image, so every
+    # subdirectory Grafana expects has to exist here, even when unused.
+    - "{{ grafana_provisioning_path }}/datasources"
+    - "{{ grafana_provisioning_path }}/dashboards"
+    - "{{ grafana_provisioning_path }}/dashboards/definitions"
+    - "{{ grafana_provisioning_path }}/plugins"
+    - "{{ grafana_provisioning_path }}/alerting"
+    - "{{ grafana_provisioning_path }}/access-control"
 
 - name: Write Grafana admin password to a file
   copy:
@@ -152,45 +161,7 @@
     project_src: "{{ ha_server_container_stack_location }}"
   tags: start-stacks
 
-- name: Adding additional configs - should be done after the initial start of the containers
-  block:
-    - name: Wait for Home Assistant to create its main config file - takes a while on first boot
-      wait_for:
-        path: "{{ homeassistant_config_path }}/configuration.yaml"
-        timeout: 300
-
-    - name: Stopping using docker compose for config update
-      community.docker.docker_compose_v2:
-        project_src: "{{ ha_server_container_stack_location }}"
-        state: absent
-
-    - name: Add Homeassistant config file for influxdb
-      template:
-        src: influxdb.yml.j2
-        dest: "{{ homeassistant_config_path }}/influxdb.yml"
-        owner: "{{ server_data_dir_user }}"
-        group: "{{ server_data_dir_group }}"
-
-    - name: Check home assistant main config file for influxdb import
-      lineinfile:
-        state: absent
-        path: "{{ homeassistant_config_path }}/configuration.yaml"
-        regexp: "^influxdb: !include influxdb.yml$"
-      check_mode: true
-      changed_when: false
-      register: influxdb_imported_in_ha_config
-
-    - name: Add influxdb import line to home assistant main confile file
-      lineinfile:
-        path: "{{ homeassistant_config_path }}/configuration.yaml"
-        line: "influxdb: !include influxdb.yml"
-      when: influxdb_imported_in_ha_config.found == 0
-
-    - name: Start Docker containers using docker-compose after the config update
-      community.docker.docker_compose_v2:
-        project_src: "{{ ha_server_container_stack_location }}"
-
-- name: Wait for InfluxDB to be healthy - bucket provisioning needs the API up
+- name: Wait for InfluxDB to be healthy - bucket and token provisioning needs the API up
   uri:
     url: http://localhost:8086/health
     status_code: 200
@@ -241,7 +212,7 @@
     # a list - handle both so a CLI change does not silently write a broken file.
     - name: Write the EVCC influxdb token file
       copy:
-        content: "{{ (token_json[0] if token_json is not mapping else token_json).token }}"
+        content: "{{ token_json[0].token if token_json is not mapping else token_json.token }}"
         dest: "{{ influxdb_evcc_token_path }}"
         owner: "{{ server_data_dir_user }}"
         group: "{{ server_data_dir_group }}"
@@ -259,13 +230,117 @@
   set_fact:
     influxdb_evcc_token: "{{ influxdb_evcc_token_file_content.content | b64decode | trim }}"
 
-- name: Show the influxdb settings to enter in the EVCC UI
-  debug:
-    msg:
-      - "url:      http://localhost:8086"
-      - "org:      {{ influxdb_org_name }}"
-      - "database: {{ influxdb_evcc_bucket_name }}"
-      - "token:    {{ influxdb_evcc_token }}"
+- name: Check whether the Grafana influxdb token file exist
+  stat:
+    path: "{{ influxdb_grafana_token_path }}"
+  register: influxdb_grafana_token_file
+
+- name: Create a read-only influxdb token for Grafana - only on first time setup
+  block:
+    # Read access to every bucket in the org, so buckets added later work without
+    # having to re-issue this token.
+    - name: Create the Grafana token - read access only
+      community.docker.docker_container_exec:
+        container: influxdb
+        command: "influx auth create --org {{ influxdb_org_name }} --read-buckets --description grafana --json --token {{ influxdb_api_token }}"
+      register: influxdb_grafana_token_create
+      failed_when: influxdb_grafana_token_create.rc != 0
+
+    - name: Write the Grafana influxdb token file
+      copy:
+        content: "{{ token_json[0].token if token_json is not mapping else token_json.token }}"
+        dest: "{{ influxdb_grafana_token_path }}"
+        owner: "{{ server_data_dir_user }}"
+        group: "{{ server_data_dir_group }}"
+        mode: '0600'
+      vars:
+        token_json: "{{ influxdb_grafana_token_create.stdout | from_json }}"
+  when: not influxdb_grafana_token_file.stat.exists
+
+- name: Read the Grafana influxdb token from the token file
+  slurp:
+    src: "{{ influxdb_grafana_token_path }}"
+  register: influxdb_grafana_token_file_content
+  tags: grafana
+
+- name: Set the Grafana influxdb token fact
+  set_fact:
+    influxdb_grafana_token: "{{ influxdb_grafana_token_file_content.content | b64decode | trim }}"
+  tags: grafana
+
+- name: Copy the Grafana datasource provisioning file
+  template:
+    src: grafana-datasources.yml.j2
+    dest: "{{ grafana_provisioning_path }}/datasources/datasources.yml"
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+    mode: '0600'
+  register: grafana_datasources_provisioning
+  tags: grafana
+
+- name: Copy the Grafana dashboard provider file
+  template:
+    src: grafana-dashboards.yml.j2
+    dest: "{{ grafana_provisioning_path }}/dashboards/dashboards.yml"
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+  register: grafana_dashboard_provider
+  tags: grafana
+
+- name: Copy the Grafana dashboards
+  template:
+    src: "{{ item }}"
+    dest: "{{ grafana_provisioning_path }}/dashboards/definitions/{{ item | basename | regex_replace('\\.j2$', '') }}"
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+  loop:
+    - grafana-dashboard-evcc.json.j2
+  tags: grafana
+
+# Dashboards are re-read by the file provider every 30s, but datasources and the
+# provider config itself are only read at startup.
+- name: Restart Grafana when its provisioning config changed
+  command: docker restart grafana
+  when: grafana_datasources_provisioning.changed or grafana_dashboard_provider.changed
+  tags: grafana
+
+- name: Adding additional configs - should be done after the initial start of the containers
+  block:
+    - name: Wait for Home Assistant to create its main config file - takes a while on first boot
+      wait_for:
+        path: "{{ homeassistant_config_path }}/configuration.yaml"
+        timeout: 300
+
+    - name: Stopping using docker compose for config update
+      community.docker.docker_compose_v2:
+        project_src: "{{ ha_server_container_stack_location }}"
+        state: absent
+
+    - name: Add Homeassistant config file for influxdb
+      template:
+        src: influxdb.yml.j2
+        dest: "{{ homeassistant_config_path }}/influxdb.yml"
+        owner: "{{ server_data_dir_user }}"
+        group: "{{ server_data_dir_group }}"
+
+    - name: Check home assistant main config file for influxdb import
+      lineinfile:
+        state: absent
+        path: "{{ homeassistant_config_path }}/configuration.yaml"
+        regexp: "^influxdb: !include influxdb.yml$"
+      check_mode: true
+      changed_when: false
+      register: influxdb_imported_in_ha_config
+
+    - name: Add influxdb import line to home assistant main confile file
+      lineinfile:
+        path: "{{ homeassistant_config_path }}/configuration.yaml"
+        line: "influxdb: !include influxdb.yml"
+      when: influxdb_imported_in_ha_config.found == 0
+
+    - name: Start Docker containers using docker-compose after the config update
+      community.docker.docker_compose_v2:
+        project_src: "{{ ha_server_container_stack_location }}"
 
 - name: Wait for Grafana to be healthy - migrations on a fresh database take a while
   uri:

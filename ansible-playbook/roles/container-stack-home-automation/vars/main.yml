@@ -41,10 +41,12 @@ influxdb_bucket_name: home-assistant-sensors
 influxdb_evcc_bucket_name: evcc
 influxdb_evcc_bucket_retention: 0
 influxdb_evcc_token_path: "{{ influxdb_password_path }}/evcc_token.txt"
+influxdb_grafana_token_path: "{{ influxdb_password_path }}/grafana_token.txt"
 
 # Grafana
 grafana_config_path: "{{ container_data_root }}/grafana/config"
 grafana_password_path: "{{ container_data_root }}/grafana/passwords"
+grafana_provisioning_path: "{{ container_data_root }}/grafana/provisioning"
 
 # Mosquitto
 mosquitto_config_path: "{{ container_data_root }}/mosquitto"

@@ -99,6 +99,7 @@ services:
     network_mode: host
     volumes:
       - {{ grafana_config_path }}:/var/lib/grafana
+      - {{ grafana_provisioning_path }}:/etc/grafana/provisioning
       - /etc/localtime:/etc/localtime:ro
 
   mosquitto:
