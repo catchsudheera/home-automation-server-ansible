@@ -1,0 +1,16 @@
+apiVersion: 1
+
+# Managed by Ansible. allowUiUpdates lets panels be tweaked in the Grafana UI,
+# but this repo stays the source of truth - UI edits are lost when the dashboard
+# file changes, so port anything worth keeping back into the template.
+providers:
+  - name: ansible
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/definitions
+      foldersFromFilesStructure: false

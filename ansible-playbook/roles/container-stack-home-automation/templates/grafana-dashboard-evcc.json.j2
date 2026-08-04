@@ -1,0 +1,1099 @@
+{
+  "uid": "evcc-electricity",
+  "title": "Electricity",
+  "description": "Grid, PV and household electricity. Live detail from the EVCC bucket, longer history and per-appliance detail from the Home Assistant bucket. Managed by Ansible.",
+  "tags": ["evcc", "homeassistant", "energy", "ansible"],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": {"from": "now-24h", "to": "now"},
+  "timepicker": {"refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "1h"]},
+  "annotations": {"list": []},
+  "templating": {"list": []},
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Live",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "PV Power",
+      "description": "Current solar production across all arrays.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "color": {"mode": "fixed", "fixedColor": "yellow"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"pvPower\" and r._field == \"value\" and not exists r.id)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Home Consumption",
+      "description": "Household load as calculated by EVCC (grid + PV + battery - charging).",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "color": {"mode": "fixed", "fixedColor": "blue"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"homePower\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Grid Power",
+      "description": "Positive = importing from the grid, negative = exporting.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "text", "value": 0},
+              {"color": "orange", "value": 1},
+              {"color": "red", "value": 3000}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"gridPower\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Green Share (home)",
+      "description": "Fraction of household consumption currently covered by self-produced energy.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 0,
+          "min": 0,
+          "max": 1,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "orange", "value": 0.3},
+              {"color": "green", "value": 0.7}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"greenShareHome\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Grid Price",
+      "description": "Import price per kWh from the configured grid tariff.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "decimals": 3,
+          "color": {"mode": "fixed", "fixedColor": "purple"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"tariffGrid\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Feed-in Price",
+      "description": "Export price per kWh from the configured feed-in tariff.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "decimals": 3,
+          "color": {"mode": "fixed", "fixedColor": "green"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"tariffFeedIn\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Power",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Power flow",
+      "description": "PV production, household consumption and grid exchange. Grid below zero means you are exporting.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "scaleDistribution": {"type": "linear"}
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [
+              {"id": "displayName", "value": "PV"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "B"},
+            "properties": [
+              {"id": "displayName", "value": "Home"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "C"},
+            "properties": [
+              {"id": "displayName", "value": "Grid"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"pvPower\" and r._field == \"value\" and not exists r.id)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"homePower\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "C",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"gridPower\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Grid power per phase",
+      "description": "Per-phase grid exchange. Useful for spotting an unbalanced load across L1/L2/L3.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 15},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": true,
+            "scaleDistribution": {"type": "linear"}
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"gridPowers\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Grid current per phase",
+      "description": "Per-phase current. Watch this against your main fuse rating.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 15},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "amp",
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": true,
+            "scaleDistribution": {"type": "linear"}
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"gridCurrents\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Energy",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 23},
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Daily PV production",
+      "description": "Daily delta of the lifetime PV counter, bucketed in local time. Pinned to the last 30 days - a daily bar needs two day boundaries in range, so it would go blank on the dashboard's shorter time ranges.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "timeFrom": "30d",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "showPoints": "never",
+            "spanNulls": false,
+            "scaleDistribution": {"type": "linear"}
+          },
+          "color": {"mode": "fixed", "fixedColor": "yellow"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [{"id": "displayName", "value": "PV produced"}]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "import \"timezone\"\n\noption location = timezone.location(name: \"{{ server_timezone }}\")\n\nfrom(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"pvEnergy\" and r._field == \"value\" and not exists r.id)\n  |> aggregateWindow(every: 1d, fn: max, timeSrc: \"_start\", createEmpty: false)\n  |> difference(nonNegative: true)"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Daily grid energy",
+      "description": "Daily delta of the grid meter counter, pinned to the last 30 days. Depending on the meter this is net or import-only - compare with the power flow panel before trusting it.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "timeFrom": "30d",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "showPoints": "never",
+            "spanNulls": false,
+            "scaleDistribution": {"type": "linear"}
+          },
+          "color": {"mode": "fixed", "fixedColor": "red"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [{"id": "displayName", "value": "Grid energy"}]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "import \"timezone\"\n\noption location = timezone.location(name: \"{{ server_timezone }}\")\n\nfrom(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"gridEnergy\" and r._field == \"value\")\n  |> aggregateWindow(every: 1d, fn: max, timeSrc: \"_start\", createEmpty: false)\n  |> difference(nonNegative: false)"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "PV total",
+      "description": "Lifetime PV counter as reported by the inverter.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 32},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "decimals": 0,
+          "color": {"mode": "fixed", "fixedColor": "yellow"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"pvEnergy\" and r._field == \"value\" and not exists r.id)\n  |> last()"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "stat",
+      "title": "Grid total",
+      "description": "Lifetime grid meter counter.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 32},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "decimals": 0,
+          "color": {"mode": "fixed", "fixedColor": "red"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"gridEnergy\" and r._field == \"value\")\n  |> last()"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Energy counters",
+      "description": "Raw cumulative counters. A flat line here means the meter stopped reporting.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 32},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": true,
+            "scaleDistribution": {"type": "linear"}
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [
+              {"id": "displayName", "value": "PV total"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "B"},
+            "properties": [
+              {"id": "displayName", "value": "Grid total"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"pvEnergy\" and r._field == \"value\" and not exists r.id)\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"gridEnergy\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "row",
+      "title": "Prices and forecast",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 38},
+      "panels": []
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Electricity price",
+      "description": "Grid, feed-in and effective home price per kWh.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 39},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "decimals": 3,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "auto",
+            "spanNulls": true,
+            "lineInterpolation": "stepAfter",
+            "scaleDistribution": {"type": "linear"}
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [
+              {"id": "displayName", "value": "Grid price"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "B"},
+            "properties": [
+              {"id": "displayName", "value": "Feed-in price"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "C"},
+            "properties": [
+              {"id": "displayName", "value": "Effective home price"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"tariffGrid\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"tariffFeedIn\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "C",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"tariffPriceHome\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Solar forecast",
+      "description": "EVCC's solar forecast signal, updated roughly every 15 minutes. Pinned to 24h so it stays readable when the dashboard is zoomed in.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 39},
+      "timeFrom": "24h",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "spanNulls": true,
+            "lineInterpolation": "stepAfter",
+            "scaleDistribution": {"type": "linear"}
+          },
+          "color": {"mode": "fixed", "fixedColor": "orange"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [{"id": "displayName", "value": "Forecast"}]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"tariffSolar\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "row",
+      "title": "Self-sufficiency and battery",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 46},
+      "panels": []
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Green share",
+      "description": "Share of consumption covered by self-produced energy, for the house and for charging.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 47},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 0,
+          "min": 0,
+          "max": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "scaleDistribution": {"type": "linear"}
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [
+              {"id": "displayName", "value": "Home"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "B"},
+            "properties": [
+              {"id": "displayName", "value": "Loadpoints"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"greenShareHome\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"greenShareLoadpoints\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Battery",
+      "description": "Empty until a battery meter is configured in EVCC - this site currently reports none. SoC on the left axis, battery power on the right.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 47},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "scaleDistribution": {"type": "linear"}
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [
+              {"id": "displayName", "value": "State of charge"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}},
+              {"id": "max", "value": 100},
+              {"id": "min", "value": 0}
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "B"},
+            "properties": [
+              {"id": "displayName", "value": "Battery power"},
+              {"id": "unit", "value": "watt"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "purple"}},
+              {"id": "custom.axisPlacement", "value": "right"}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"batterySoc\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"batteryPower\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "type": "row",
+      "title": "Grid meter - P1 (Home Assistant)",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 54},
+      "panels": []
+    },
+    {
+      "id": 25,
+      "type": "timeseries",
+      "title": "Daily grid import vs export",
+      "description": "From the P1 smart meter registers in Home Assistant, both tariffs summed. Import is positive, export negative. This history reaches back further than the EVCC bucket.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 55},
+      "timeFrom": "30d",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "showPoints": "never",
+            "spanNulls": false,
+            "scaleDistribution": {"type": "linear"}
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [
+              {"id": "displayName", "value": "Imported"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "B"},
+            "properties": [
+              {"id": "displayName", "value": "Exported"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "table", "placement": "bottom", "calcs": ["sum", "mean"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+          "query": "import \"timezone\"\n\noption location = timezone.location(name: \"{{ server_timezone }}\")\n\nfrom(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"kWh\" and r._field == \"value\" and r.entity_id =~ /^energy_consumed_tariff/)\n  |> aggregateWindow(every: 1d, fn: max, timeSrc: \"_start\", createEmpty: false)\n  |> difference(nonNegative: true)\n  |> group(columns: [\"_time\"])\n  |> sum()\n  |> group()\n  |> sort(columns: [\"_time\"])"
+        },
+        {
+          "refId": "B",
+          "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+          "query": "import \"timezone\"\n\noption location = timezone.location(name: \"{{ server_timezone }}\")\n\nfrom(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"kWh\" and r._field == \"value\" and r.entity_id =~ /^energy_produced_tariff/)\n  |> aggregateWindow(every: 1d, fn: max, timeSrc: \"_start\", createEmpty: false)\n  |> difference(nonNegative: true)\n  |> group(columns: [\"_time\"])\n  |> sum()\n  |> group()\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({r with _value: r._value * -1.0}))"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "Meter registers",
+      "description": "Raw cumulative P1 registers per tariff. Steps in these are what the daily bars are derived from.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 55},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "auto",
+            "spanNulls": true,
+            "lineInterpolation": "stepAfter",
+            "scaleDistribution": {"type": "linear"}
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"kWh\" and r._field == \"value\" and r.entity_id =~ /^energy_(consumed|produced)_tariff/)\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "type": "row",
+      "title": "Appliances (Home Assistant)",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 63},
+      "panels": []
+    },
+    {
+      "id": 28,
+      "type": "timeseries",
+      "title": "Appliance power",
+      "description": "Every metered plug and appliance, stacked. The gap between this and EVCC's home consumption is everything that is not individually metered.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 64},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 40,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {"mode": "normal", "group": "A"},
+            "scaleDistribution": {"type": "linear"}
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"value\" and r.entity_id !~ /^inverter_/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "type": "timeseries",
+      "title": "Appliance daily energy",
+      "description": "Daily kWh per metered appliance, stacked. Pinned to 30 days for the same reason as the other daily panels.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 64},
+      "timeFrom": "30d",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {"mode": "normal", "group": "A"},
+            "scaleDistribution": {"type": "linear"}
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "table", "placement": "bottom", "calcs": ["sum"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+          "query": "import \"timezone\"\n\noption location = timezone.location(name: \"{{ server_timezone }}\")\n\nfrom(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"kWh\" and r._field == \"value\" and r.entity_id =~ /_energy$/)\n  |> aggregateWindow(every: 1d, fn: max, timeSrc: \"_start\", createEmpty: false)\n  |> difference(nonNegative: true)"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "type": "row",
+      "title": "Solar detail (Home Assistant)",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 72},
+      "panels": []
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Power per micro-inverter",
+      "description": "One line per Enphase micro-inverter. A panel that is shaded, dirty or failing shows up as a line that drifts away from the pack. Legend is hidden - hover to identify a series.",
+      "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 73},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": true,
+            "scaleDistribution": {"type": "linear"}
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"showLegend": false, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"value\" and r.entity_id =~ /^inverter_/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "PV production - EVCC vs Enphase",
+      "description": "EVCC's site PV figure against the sum of the individual micro-inverters. They should track each other closely - a persistent gap means one of the two sources is stale.",
+      "datasource": {"type": "datasource", "uid": "-- Mixed --"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 73},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true,
+            "scaleDistribution": {"type": "linear"}
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [
+              {"id": "displayName", "value": "EVCC site PV"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "B"},
+            "properties": [
+              {"id": "displayName", "value": "Enphase inverters (sum)"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom", "calcs": []},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb-evcc"},
+          "query": "from(bucket: \"{{ influxdb_evcc_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"pvPower\" and r._field == \"value\" and not exists r.id)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "datasource": {"type": "influxdb", "uid": "influxdb-home-assistant"},
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"value\" and r.entity_id =~ /^inverter_/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> group(columns: [\"_time\"])\n  |> sum()\n  |> group()\n  |> sort(columns: [\"_time\"])"
+        }
+      ]
+    }
+  ]
+}
