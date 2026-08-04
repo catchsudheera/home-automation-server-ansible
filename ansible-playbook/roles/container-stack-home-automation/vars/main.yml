@@ -35,6 +35,13 @@ influxdb_password_path: "{{ container_data_root }}/influxdb/passwords"
 influxdb_org_name: home
 influxdb_bucket_name: home-assistant-sensors
 
+# EVCC gets its own bucket so its retention can be managed independently.
+# Retention 0 means keep forever. Note that this is only applied when the
+# bucket is first created - changing it later needs an `influx bucket update`.
+influxdb_evcc_bucket_name: evcc
+influxdb_evcc_bucket_retention: 0
+influxdb_evcc_token_path: "{{ influxdb_password_path }}/evcc_token.txt"
+
 # Grafana
 grafana_config_path: "{{ container_data_root }}/grafana/config"
 grafana_password_path: "{{ container_data_root }}/grafana/passwords"

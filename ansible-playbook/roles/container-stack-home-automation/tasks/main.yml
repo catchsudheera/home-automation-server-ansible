@@ -190,6 +190,83 @@
       community.docker.docker_compose_v2:
         project_src: "{{ ha_server_container_stack_location }}"
 
+- name: Wait for InfluxDB to be healthy - bucket provisioning needs the API up
+  uri:
+    url: http://localhost:8086/health
+    status_code: 200
+  register: influxdb_health
+  until: influxdb_health.status == 200
+  retries: 30
+  delay: 10
+
+- name: Check whether the EVCC InfluxDB bucket exists
+  community.docker.docker_container_exec:
+    container: influxdb
+    command: "influx bucket list --org {{ influxdb_org_name }} --name {{ influxdb_evcc_bucket_name }} --token {{ influxdb_api_token }}"
+  register: influxdb_evcc_bucket_list
+  failed_when: false
+  changed_when: false
+
+- name: Create the EVCC InfluxDB bucket
+  community.docker.docker_container_exec:
+    container: influxdb
+    command: "influx bucket create --org {{ influxdb_org_name }} --name {{ influxdb_evcc_bucket_name }} --retention {{ influxdb_evcc_bucket_retention }} --token {{ influxdb_api_token }}"
+  register: influxdb_evcc_bucket_create
+  failed_when: influxdb_evcc_bucket_create.rc != 0
+  when: influxdb_evcc_bucket_list.rc != 0
+
+- name: Check whether the EVCC influxdb token file exist
+  stat:
+    path: "{{ influxdb_evcc_token_path }}"
+  register: influxdb_evcc_token_file
+
+- name: Create a write-scoped influxdb token for EVCC - only on first time setup
+  block:
+    - name: Look up the EVCC bucket id
+      community.docker.docker_container_exec:
+        container: influxdb
+        command: "influx bucket list --org {{ influxdb_org_name }} --name {{ influxdb_evcc_bucket_name }} --json --token {{ influxdb_api_token }}"
+      register: influxdb_evcc_bucket_info
+      failed_when: influxdb_evcc_bucket_info.rc != 0
+      changed_when: false
+
+    - name: Create the EVCC token - write access to the EVCC bucket only
+      community.docker.docker_container_exec:
+        container: influxdb
+        command: "influx auth create --org {{ influxdb_org_name }} --write-bucket {{ (influxdb_evcc_bucket_info.stdout | from_json)[0].id }} --description evcc --json --token {{ influxdb_api_token }}"
+      register: influxdb_evcc_token_create
+      failed_when: influxdb_evcc_token_create.rc != 0
+
+    # `auth create --json` prints a single object while `auth list --json` prints
+    # a list - handle both so a CLI change does not silently write a broken file.
+    - name: Write the EVCC influxdb token file
+      copy:
+        content: "{{ (token_json[0] if token_json is not mapping else token_json).token }}"
+        dest: "{{ influxdb_evcc_token_path }}"
+        owner: "{{ server_data_dir_user }}"
+        group: "{{ server_data_dir_group }}"
+        mode: '0600'
+      vars:
+        token_json: "{{ influxdb_evcc_token_create.stdout | from_json }}"
+  when: not influxdb_evcc_token_file.stat.exists
+
+- name: Read the EVCC influxdb token from the token file
+  slurp:
+    src: "{{ influxdb_evcc_token_path }}"
+  register: influxdb_evcc_token_file_content
+
+- name: Set the EVCC influxdb token fact
+  set_fact:
+    influxdb_evcc_token: "{{ influxdb_evcc_token_file_content.content | b64decode | trim }}"
+
+- name: Show the influxdb settings to enter in the EVCC UI
+  debug:
+    msg:
+      - "url:      http://localhost:8086"
+      - "org:      {{ influxdb_org_name }}"
+      - "database: {{ influxdb_evcc_bucket_name }}"
+      - "token:    {{ influxdb_evcc_token }}"
+
 - name: Wait for Grafana to be healthy - migrations on a fresh database take a while
   uri:
     url: http://localhost:3000/api/health
