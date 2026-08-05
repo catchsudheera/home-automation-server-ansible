@@ -295,6 +295,10 @@
     group: "{{ server_data_dir_group }}"
   loop:
     - grafana-dashboard-evcc.json.j2
+    - grafana-dashboard-climate.json.j2
+    - grafana-dashboard-appliances.json.j2
+    - grafana-dashboard-solar.json.j2
+    - grafana-dashboard-maintenance.json.j2
   tags: grafana
 
 # Dashboards are re-read by the file provider every 30s, but datasources and the

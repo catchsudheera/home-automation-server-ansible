@@ -38,7 +38,16 @@ Grafana datasources **and** dashboards are provisioned from this repo into
 `{{ grafana_provisioning_path }}` (mounted at `/etc/grafana/provisioning`). Datasources are
 `editable: false`, so they cannot be changed in the UI — edit the template and re-run. Dashboards use
 `allowUiUpdates: true`, so UI edits work but are lost whenever the dashboard file changes; port
-anything worth keeping back into `grafana-dashboard-*.json.j2`.
+anything worth keeping back into `grafana-dashboard-*.json.j2`. Every dashboard file has to be
+listed in the "Copy the Grafana dashboards" loop in `tasks/main.yml` — five so far: `evcc`
+(Electricity), `climate`, `appliances`, `solar`, `maintenance`.
+
+Panel series are labelled from Home Assistant's `friendly_name_str` field wherever entity_ids have
+drifted from reality (several `shelly_plug_*` ids name the wrong appliance). The pattern is a
+`last()` lookup over a fixed `-7d` window joined to the data on `entity_id`, so renaming a device in
+HA renames it on the dashboard, and the lookup cost does not grow with the panel's time range. The
+recovered pre-2026-07-26 history has no `friendly_name_str` at all, which is fine — the names come
+from live data and apply to any range.
 
 `--tags grafana` re-applies datasources and dashboards without cycling the stack (dashboards are
 re-read by Grafana within 30s; datasource changes trigger a Grafana restart). `--tags ha-config` is

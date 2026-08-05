@@ -1,0 +1,811 @@
+{
+  "uid": "ha-appliances",
+  "title": "Appliance Energy",
+  "description": "Per-appliance electricity from the metered plugs, with cost. Managed by Ansible.",
+  "tags": [
+    "homeassistant",
+    "energy",
+    "ansible"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "refresh": "1m",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "price",
+        "type": "textbox",
+        "label": "Price (EUR/kWh)",
+        "description": "Used for every cost figure on this dashboard.",
+        "query": "0.35",
+        "current": {
+          "selected": false,
+          "text": "0.35",
+          "value": "0.35"
+        },
+        "options": [],
+        "hide": 0,
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Now",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Plug Load",
+      "description": "Combined draw of every metered plug right now.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "yellow"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -15m)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"value\" and r.entity_id !~ /^inverter_/ and r.entity_id !~ /^(washer_samsung|dryer)_/)\n  |> last()\n  |> group()\n  |> sum()"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Energy Today",
+      "description": "Total metered plug consumption since local midnight.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"date\"\nimport \"timezone\"\n\noption location = timezone.location(name: \"{{ server_timezone }}\")\n\nfrom(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: date.truncate(t: now(), unit: 1d))\n  |> filter(fn: (r) => r._measurement == \"kWh\" and r._field == \"value\" and r.entity_id =~ /_energy$/ and r.entity_id !~ /^(washer_samsung|dryer)_/)\n  |> spread()\n  |> group()\n  |> sum()"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Cost Today",
+      "description": "Energy today at the price set in the dashboard variable.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"date\"\nimport \"timezone\"\n\noption location = timezone.location(name: \"{{ server_timezone }}\")\n\nfrom(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: date.truncate(t: now(), unit: 1d))\n  |> filter(fn: (r) => r._measurement == \"kWh\" and r._field == \"value\" and r.entity_id =~ /_energy$/ and r.entity_id !~ /^(washer_samsung|dryer)_/)\n  |> spread()\n  |> group()\n  |> sum()\n  |> map(fn: (r) => ({r with _value: r._value * ${price}}))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Plugs Reporting",
+      "description": "How many plugs have sent a reading in the last 15 minutes. A drop here means a plug fell off the network.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -15m)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"value\" and r.entity_id !~ /^inverter_/ and r.entity_id !~ /^(washer_samsung|dryer)_/)\n  |> last()\n  |> group()\n  |> count()"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Live",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Power by Appliance",
+      "description": "Series are named from the Home Assistant friendly name, not the entity_id - several entity_ids no longer match what is plugged in.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 0,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "gradientMode": "opacity",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "decimals": 0,
+          "displayName": "${__field.labels.appliance}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"strings\"\n\nclean = (n) => {\n    a = strings.trimSuffix(v: n, suffix: \" power\")\n    b = strings.trimSuffix(v: a, suffix: \" Power\")\n    c = strings.trimSuffix(v: b, suffix: \" energy\")\n    d = strings.trimSuffix(v: c, suffix: \" Energy\")\n    e = strings.trimSuffix(v: d, suffix: \" Switch 0\")\n    f = strings.trimPrefix(v: e, prefix: \"shelly_plug_\")\n    return strings.title(v: strings.replaceAll(v: f, t: \"_\", u: \" \"))\n}\n\nnames = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"friendly_name_str\")\n  |> last()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n  |> group()\n  |> map(fn: (r) => ({entity_id: r.entity_id, appliance: clean(n: r._value)}))\n\npower = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"value\" and r.entity_id !~ /^inverter_/ and r.entity_id !~ /^(washer_samsung|dryer)_/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n\njoin(tables: {d: power, n: names}, on: [\"entity_id\"])\n  |> group(columns: [\"appliance\"])\n  |> keep(columns: [\"_time\", \"_value\", \"appliance\"])"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Right Now",
+      "description": "Current draw per plug, highest first.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Watts"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "watt"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 2500
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 200
+                    },
+                    {
+                      "color": "orange",
+                      "value": 800
+                    },
+                    {
+                      "color": "red",
+                      "value": 1800
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"strings\"\n\nclean = (n) => {\n    a = strings.trimSuffix(v: n, suffix: \" power\")\n    b = strings.trimSuffix(v: a, suffix: \" Power\")\n    c = strings.trimSuffix(v: b, suffix: \" energy\")\n    d = strings.trimSuffix(v: c, suffix: \" Energy\")\n    e = strings.trimSuffix(v: d, suffix: \" Switch 0\")\n    f = strings.trimPrefix(v: e, prefix: \"shelly_plug_\")\n    return strings.title(v: strings.replaceAll(v: f, t: \"_\", u: \" \"))\n}\n\nnames = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"friendly_name_str\")\n  |> last()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n  |> group()\n  |> map(fn: (r) => ({entity_id: r.entity_id, appliance: clean(n: r._value)}))\n\ncurrent = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -15m)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"value\" and r.entity_id !~ /^inverter_/ and r.entity_id !~ /^(washer_samsung|dryer)_/)\n  |> last()\n  |> group()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n\njoin(tables: {d: current, n: names}, on: [\"entity_id\"])\n  |> map(fn: (r) => ({Appliance: r.appliance, Watts: r._value}))\n  |> sort(columns: [\"Watts\"], desc: true)"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Daily Energy",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Energy per Day",
+      "description": "Daily consumption per appliance, stacked. Derived from the cumulative kWh counters, so a plug that is reset shows a gap rather than a spike.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 90,
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "gradientMode": "opacity",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "decimals": 2,
+          "displayName": "${__field.labels.appliance}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"strings\"\nimport \"timezone\"\n\noption location = timezone.location(name: \"{{ server_timezone }}\")\n\nclean = (n) => {\n    a = strings.trimSuffix(v: n, suffix: \" power\")\n    b = strings.trimSuffix(v: a, suffix: \" Power\")\n    c = strings.trimSuffix(v: b, suffix: \" energy\")\n    d = strings.trimSuffix(v: c, suffix: \" Energy\")\n    e = strings.trimSuffix(v: d, suffix: \" Switch 0\")\n    f = strings.trimPrefix(v: e, prefix: \"shelly_plug_\")\n    return strings.title(v: strings.replaceAll(v: f, t: \"_\", u: \" \"))\n}\n\nnames = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"kWh\" and r._field == \"friendly_name_str\")\n  |> last()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n  |> group()\n  |> map(fn: (r) => ({entity_id: r.entity_id, appliance: clean(n: r._value)}))\n\ndaily = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"kWh\" and r._field == \"value\" and r.entity_id =~ /_energy$/ and r.entity_id !~ /^(washer_samsung|dryer)_/)\n  |> aggregateWindow(every: 1d, fn: max, timeSrc: \"_start\", createEmpty: false)\n  |> difference(nonNegative: true)\n\njoin(tables: {d: daily, n: names}, on: [\"entity_id\"])\n  |> group(columns: [\"appliance\"])\n  |> keep(columns: [\"_time\", \"_value\", \"appliance\"])"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "table",
+      "title": "Totals for the Selected Range",
+      "description": "Energy and cost per appliance over whatever range the time picker is set to. Change the price variable at the top to re-cost it.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Energy"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "kwatth"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cost"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Appliance"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "fields": [
+            "Energy",
+            "Cost"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"strings\"\n\nclean = (n) => {\n    a = strings.trimSuffix(v: n, suffix: \" power\")\n    b = strings.trimSuffix(v: a, suffix: \" Power\")\n    c = strings.trimSuffix(v: b, suffix: \" energy\")\n    d = strings.trimSuffix(v: c, suffix: \" Energy\")\n    e = strings.trimSuffix(v: d, suffix: \" Switch 0\")\n    f = strings.trimPrefix(v: e, prefix: \"shelly_plug_\")\n    return strings.title(v: strings.replaceAll(v: f, t: \"_\", u: \" \"))\n}\n\nnames = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"kWh\" and r._field == \"friendly_name_str\")\n  |> last()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n  |> group()\n  |> map(fn: (r) => ({entity_id: r.entity_id, appliance: clean(n: r._value)}))\n\ntotals = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"kWh\" and r._field == \"value\" and r.entity_id =~ /_energy$/ and r.entity_id !~ /^(washer_samsung|dryer)_/)\n  |> spread()\n  |> group()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n\njoin(tables: {d: totals, n: names}, on: [\"entity_id\"])\n  |> map(fn: (r) => ({Appliance: r.appliance, Energy: r._value, Cost: r._value * ${price}}))\n  |> sort(columns: [\"Energy\"], desc: true)"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "type": "row",
+      "title": "Washer and Dryer",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "panels": []
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Wash and Dry Cycles",
+      "description": "Plug power for the washing machine and the dryer. The shape of each run tells you which programme was used.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 38
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 25,
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "gradientMode": "opacity",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Washing machine"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Dryer"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"value\" and r.entity_id == \"shellyplusplugs_d48afc7bfa8c_switch_0_power\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"W\" and r._field == \"value\" and r.entity_id == \"washer_room_shelly_plug_dryer_power\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "type": "state-timeline",
+      "title": "Machine State",
+      "description": "Reported by the SmartThings integration, independent of the plug metering.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 38
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 70
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "displayName": "${__field.labels.entity_id}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "auto",
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"units\" and r._field == \"state\")\n  |> filter(fn: (r) => r.entity_id == \"washer_samsung_machine_state\" or r.entity_id == \"dryer_machine_state\")\n  |> group(columns: [\"entity_id\"])\n  |> keep(columns: [\"_time\", \"_value\", \"entity_id\"])"
+        }
+      ]
+    }
+  ]
+}

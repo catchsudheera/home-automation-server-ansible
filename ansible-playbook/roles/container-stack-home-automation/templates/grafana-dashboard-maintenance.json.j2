@@ -1,0 +1,989 @@
+{
+  "uid": "ha-maintenance",
+  "title": "Batteries and Maintenance",
+  "description": "Battery health, consumables and infrastructure state across the house. Managed by Ansible.",
+  "tags": [
+    "homeassistant",
+    "maintenance",
+    "ansible"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "refresh": "5m",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Batteries",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Battery Levels",
+      "description": "Every battery reported to Home Assistant, emptiest first. Names come from the friendly name, so renaming a device in HA renames it here.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 9,
+        "x": 0,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Level"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 20
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 40
+                    },
+                    {
+                      "color": "green",
+                      "value": 60
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"strings\"\n\nclean = (n) => {\n    a = strings.trimSuffix(v: n, suffix: \" Battery\")\n    b = strings.trimSuffix(v: a, suffix: \" Battery Level\")\n    c = strings.trimSuffix(v: b, suffix: \" Battery level\")\n    d = strings.trimSuffix(v: c, suffix: \"_battery\")\n    return strings.title(v: strings.replaceAll(v: d, t: \"_\", u: \" \"))\n}\n\nnames = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"%\" and r._field == \"friendly_name_str\")\n  |> last()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n  |> group()\n  |> map(fn: (r) => ({entity_id: r.entity_id, device: clean(n: r._value)}))\n\nlevels = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"%\" and r._field == \"value\" and (r.entity_id =~ /_battery$/ or r.entity_id =~ /_battery_level$/))\n  |> last()\n  |> group()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n\njoin(tables: {l: levels, n: names}, on: [\"entity_id\"])\n  |> map(fn: (r) => ({Device: r.device, Level: r._value}))\n  |> sort(columns: [\"Level\"])"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Battery Trend",
+      "description": "The slope matters more than the level - a battery that drops in a straight line is about to need replacing.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 15,
+        "x": 9,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "gradientMode": "opacity",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "decimals": 0,
+          "displayName": "${__field.labels.device}",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"strings\"\n\nclean = (n) => {\n    a = strings.trimSuffix(v: n, suffix: \" Battery\")\n    b = strings.trimSuffix(v: a, suffix: \" Battery Level\")\n    c = strings.trimSuffix(v: b, suffix: \" Battery level\")\n    d = strings.trimSuffix(v: c, suffix: \"_battery\")\n    return strings.title(v: strings.replaceAll(v: d, t: \"_\", u: \" \"))\n}\n\nnames = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"%\" and r._field == \"friendly_name_str\")\n  |> last()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n  |> group()\n  |> map(fn: (r) => ({entity_id: r.entity_id, device: clean(n: r._value)}))\n\nlevels = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"%\" and r._field == \"value\" and (r.entity_id =~ /_battery$/ or r.entity_id =~ /_battery_level$/))\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n\njoin(tables: {l: levels, n: names}, on: [\"entity_id\"])\n  |> group(columns: [\"device\"])\n  |> keep(columns: [\"_time\", \"_value\", \"device\"])"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Draining Soonest",
+      "description": "Projected days to empty from the average daily drop over the last three weeks. Rechargeable devices are excluded, and so is anything that is not currently losing charge.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Level"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 20
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 40
+                    },
+                    {
+                      "color": "green",
+                      "value": 60
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Days"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "d"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 14
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 45
+                    },
+                    {
+                      "color": "green",
+                      "value": 120
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"strings\"\n\nclean = (n) => {\n    a = strings.trimSuffix(v: n, suffix: \" Battery\")\n    b = strings.trimSuffix(v: a, suffix: \" Battery Level\")\n    c = strings.trimSuffix(v: b, suffix: \" Battery level\")\n    d = strings.trimSuffix(v: c, suffix: \"_battery\")\n    return strings.title(v: strings.replaceAll(v: d, t: \"_\", u: \" \"))\n}\n\nnames = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"%\" and r._field == \"friendly_name_str\")\n  |> last()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n  |> group()\n  |> map(fn: (r) => ({entity_id: r.entity_id, device: clean(n: r._value)}))\n\nbase = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -21d)\n  |> filter(fn: (r) => r._measurement == \"%\" and r._field == \"value\" and (r.entity_id =~ /_battery$/ or r.entity_id =~ /_battery_level$/) and r.entity_id !~ /(iphone|ipad|watch|sm_x200|roborock)/)\n  |> aggregateWindow(every: 1d, fn: last, createEmpty: false)\n\ncurrent = base\n  |> last()\n  |> group()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n  |> rename(columns: {_value: \"level\"})\n\nrate = base\n  |> difference()\n  |> mean()\n  |> group()\n  |> keep(columns: [\"entity_id\", \"_value\"])\n  |> rename(columns: {_value: \"perday\"})\n\nstats = join(tables: {c: current, r: rate}, on: [\"entity_id\"])\n\njoin(tables: {s: stats, n: names}, on: [\"entity_id\"])\n  |> filter(fn: (r) => r.perday < 0.0)\n  |> map(fn: (r) => ({Device: r.device, Level: r.level, Days: r.level / (-1.0 * r.perday)}))\n  |> sort(columns: [\"Days\"])"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Vacuum",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Consumables",
+      "description": "Time left before each part should be replaced, as reported by the robot. Hours are converted to seconds so everything sorts together, and a negative value means the part is already overdue.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 10,
+        "x": 0,
+        "y": 25
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Remaining"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1080000
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 360000
+                    },
+                    {
+                      "color": "green",
+                      "value": 1080000
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Part"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"strings\"\n\nseconds = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"s\" and r._field == \"value\" and r.entity_id =~ /^roborock_.*_time_left$/)\n  |> last()\n\nhours = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"h\" and r._field == \"value\" and r.entity_id =~ /^roborock_.*_time_left$/)\n  |> last()\n  |> map(fn: (r) => ({r with _value: r._value * 3600.0}))\n\nunion(tables: [seconds, hours])\n  |> group()\n  |> map(fn: (r) => ({Part: strings.title(v: strings.replaceAll(v: strings.trimSuffix(v: strings.trimPrefix(v: r.entity_id, prefix: \"roborock_s7_maxv_\"), suffix: \"_time_left\"), t: \"_\", u: \" \")), Remaining: r._value}))\n  |> sort(columns: [\"Remaining\"])"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Vacuum Activity",
+      "description": "Battery and cleaning progress. Each sawtooth is one run.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 14,
+        "x": 10,
+        "y": 25
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "gradientMode": "opacity",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "max": 100
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Battery"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Cleaning progress"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"%\" and r._field == \"value\" and r.entity_id == \"roborock_s7_maxv_battery\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"%\" and r._field == \"value\" and r.entity_id == \"roborock_s7_maxv_cleaning_progress\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Infrastructure",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "WiFi Signal",
+      "description": "Signal strength of the ESPHome and other WiFi devices. dBm on the left axis, percentage on the right.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 35
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dBm",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "gradientMode": "opacity",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "WiFi signal (%)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"dBm\" and r._field == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"%\" and r._field == \"value\" and r.entity_id =~ /_wi_fi_signal$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "stat",
+      "title": "Pending Updates",
+      "description": "Home Assistant update entities currently reporting that a newer version is available.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 35
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "orange",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "import \"array\"\n\npending = from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"units\" and r.domain == \"update\" and r._field == \"value\")\n  |> last()\n  |> group()\n  |> sum()\n\n// Nothing to update is a real answer, not missing data.\nunion(tables: [pending, array.from(rows: [{_value: 0.0}])])\n  |> sum()"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "type": "stat",
+      "title": "P1 Reader Uptime",
+      "description": "How long the Slimmelezer has been running. A reset here means the meter reader rebooted.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 35
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._field == \"value\" and r.entity_id == \"slimmelezer_uptime\")\n  |> last()\n  |> group()"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "type": "stat",
+      "title": "Power Failures",
+      "description": "Short outages counted by the smart meter since it was installed.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 35
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._field == \"value\" and r.entity_id == \"electricity_failures\")\n  |> last()\n  |> group()"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "type": "timeseries",
+      "title": "Camera Footage Retained",
+      "description": "How far back UniFi Protect can still play video. The disk itself sits at 99 percent permanently - Protect fills it once and then overwrites the oldest footage - so this is the number that moves when a camera is added or the recording quality changes.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-home-assistant"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 39
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 25,
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "gradientMode": "opacity",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Footage retained"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-home-assistant"
+          },
+          "query": "from(bucket: \"{{ influxdb_bucket_name }}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"s\" and r._field == \"value\")\n  |> filter(fn: (r) => r.entity_id == \"meter_closet_dream_machine_pro_recording_capacity\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+        }
+      ]
+    }
+  ]
+}
