@@ -308,6 +308,26 @@
   when: grafana_datasources_provisioning.changed or grafana_dashboard_provider.changed
   tags: grafana
 
+# The room dashboard is deployed outside the config block below on purpose: Home
+# Assistant re-reads a YAML-mode dashboard on demand (three-dot menu -> Refresh),
+# so `--tags ha-dashboard` can update it without cycling the stack. Only adding
+# the lovelace block to configuration.yaml needs a restart, and that is a one-off.
+- name: Create the Home Assistant dashboards directory
+  file:
+    path: "{{ homeassistant_config_path }}/dashboards"
+    state: directory
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+  tags: ha-dashboard
+
+- name: Copy the Home Assistant room dashboard
+  copy:
+    src: ha-dashboards/home.yaml
+    dest: "{{ homeassistant_config_path }}/dashboards/home.yaml"
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+  tags: ha-dashboard
+
 - name: Adding additional configs - should be done after the initial start of the containers
   block:
     - name: Wait for Home Assistant to create its main config file - takes a while on first boot
@@ -341,6 +361,26 @@
         path: "{{ homeassistant_config_path }}/configuration.yaml"
         line: "influxdb: !include influxdb.yml"
       when: influxdb_imported_in_ha_config.found == 0
+
+    # mode: storage keeps the UI-built Overview, Tablet view and Map dashboards
+    # exactly as they are - only the dashboard listed here runs from YAML. The
+    # dashboard key has to contain a hyphen; Home Assistant rejects it otherwise.
+    - name: Register the room dashboard in the Home Assistant main config file
+      blockinfile:
+        path: "{{ homeassistant_config_path }}/configuration.yaml"
+        marker: "# {mark} ANSIBLE MANAGED - lovelace dashboards"
+        block: |
+          lovelace:
+            mode: storage
+            dashboards:
+              home-rooms:
+                mode: yaml
+                title: Rooms
+                icon: mdi:home-search
+                show_in_sidebar: true
+                filename: dashboards/home.yaml
+        owner: "{{ server_data_dir_user }}"
+        group: "{{ server_data_dir_group }}"
 
     - name: Start Docker containers using docker-compose after the config update
       community.docker.docker_compose_v2:

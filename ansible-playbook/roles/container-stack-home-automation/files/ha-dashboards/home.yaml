@@ -1,0 +1,568 @@
+# Room-oriented Home Assistant dashboard. Managed by Ansible.
+#
+# This dashboard runs in YAML mode, so it CANNOT be edited in the Home Assistant
+# UI - the Edit button is deliberately absent. To change it, edit this file and:
+#
+#   ansible-playbook site.yml -i inventories/default/hosts.ini --tags ha-dashboard
+#
+# then open the dashboard in HA and pick Refresh from the three-dot menu. No
+# Home Assistant restart is needed for changes to this file.
+#
+# The existing Overview, Tablet view and Map dashboards are untouched by this
+# and remain fully editable in the UI.
+#
+# Sections are ordered by how often a room is actually looked at, not
+# alphabetically. Entity names are overridden wherever the entity_id is
+# historical and no longer describes what is plugged in.
+
+title: Home
+
+views:
+  # ------------------------------------------------------------------ ground
+  - title: Ground Floor
+    path: ground-floor
+    icon: mdi:home-floor-g
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Living Room
+            heading_style: title
+            icon: mdi:sofa
+            badges:
+              - type: entity
+                entity: sensor.th_sensor_living_room_temperature
+              - type: entity
+                entity: sensor.th_sensor_living_room_humidity
+          - type: tile
+            entity: climate.tado_smart_thermostat_ru4046274304
+            name: Thermostat
+            features:
+              - type: target-temperature
+          - type: tile
+            entity: light.aqara_lumi_light_acn032_light
+            name: Ceiling Light
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.aqara_lumi_light_acn032_light_2
+            name: Ceiling Light 2
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: switch.esphome_web_99e598_plant_light_switch
+            name: Plant Light
+          - type: tile
+            entity: switch.shelly_plug_living_room_heater
+            name: NAS Server
+          - type: tile
+            entity: sensor.shelly_plug_living_room_heater_power
+            name: NAS Server Draw
+          - type: tile
+            entity: media_player.living_room
+            name: Sonos
+            features:
+              - type: media-player-volume-slider
+          - type: tile
+            entity: media_player.living_room_tv
+            name: TV
+          - type: tile
+            entity: switch.livingroomgenie
+            name: Perfume Genie
+          - type: tile
+            entity: sensor.plant_tall_soil_moisture
+            name: Tall Plant Moisture
+          - type: tile
+            entity: sensor.living_room_pandan_plant_sensor_plant_short_soil_moisture
+            name: Pandan Plant Moisture
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Kitchen
+            heading_style: title
+            icon: mdi:countertop
+          - type: tile
+            entity: switch.shelly_light_kitchen
+            name: Kitchen Light
+          - type: tile
+            entity: switch.shelly1minig4_1020bafdd708
+            name: Stairs Light
+          - type: tile
+            entity: switch.shelly_plug_fridge
+            name: Refrigerator
+          - type: tile
+            entity: sensor.shelly_plug_fridge_power
+            name: Refrigerator Draw
+          - type: tile
+            entity: switch.shellyplusplugs_e86beae3a910_switch_0
+            name: Dishwasher / Microwave
+          - type: tile
+            entity: sensor.shellyplusplugs_e86beae3a910_switch_0_power
+            name: Dishwasher / Microwave Draw
+          - type: tile
+            entity: switch.shelly_plug_baby_bottle_washer
+            name: Baby Bottle Washer
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Front Door
+            heading_style: title
+            icon: mdi:door-closed
+            badges:
+              - type: entity
+                entity: binary_sensor.g4_doorbell_pro_person_detected
+          - type: picture-entity
+            entity: camera.g4_doorbell_pro_high_resolution_channel
+            camera_view: auto
+            show_name: false
+            show_state: false
+          - type: tile
+            entity: lock.front_door_smart_lock_pro
+            name: Front Door Lock
+            features:
+              - type: lock-commands
+          - type: tile
+            entity: binary_sensor.g4_doorbell_pro_motion
+            name: Motion
+          - type: tile
+            entity: binary_sensor.g4_doorbell_pro_doorbell
+            name: Doorbell
+          - type: tile
+            entity: media_player.front_door_g4_doorbell_pro
+            name: Doorbell Chime
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Storage Room
+            heading_style: title
+            icon: mdi:archive
+            badges:
+              - type: entity
+                entity: sensor.th_sensor_store_room_temperature
+              - type: entity
+                entity: sensor.th_sensor_store_room_humidity
+          - type: tile
+            entity: light.storage_room_light_switch_switch
+            name: Light
+          - type: tile
+            entity: binary_sensor.storage_room_motion_sensor_motion_2
+            name: Motion
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Boiler Closet
+            heading_style: title
+            icon: mdi:water-boiler
+            badges:
+              - type: entity
+                entity: sensor.tado_smart_radiator_thermostat_va2117552128_current_temperature
+          - type: tile
+            entity: climate.tado_thermostat_floor_heating_pump_control
+            name: Floor Heating Control
+            features:
+              - type: target-temperature
+          - type: tile
+            entity: switch.shellyplusplugs_fcb46725a7a8_switch_0
+            name: Floor Heating Pump
+          - type: tile
+            entity: sensor.shellyplusplugs_fcb46725a7a8_switch_0_power
+            name: Pump Draw
+          - type: tile
+            entity: switch.shellyplusplugs_e86beae40878_switch_0
+            name: Combi Boiler
+          - type: tile
+            entity: sensor.shellyplusplugs_e86beae40878_switch_0_power
+            name: Boiler Draw
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Utility Closet
+            heading_style: title
+            icon: mdi:transmission-tower
+          - type: tile
+            entity: sensor.power_consumed
+            name: Grid Import
+          - type: tile
+            entity: sensor.power_produced
+            name: Grid Export
+          - type: tile
+            entity: sensor.energy_consumed_tariff_1
+            name: Meter Reading Low Tariff
+          - type: tile
+            entity: sensor.energy_consumed_tariff_2
+            name: Meter Reading High Tariff
+          - type: tile
+            entity: sensor.gas_consumed
+            name: Gas Meter
+          - type: tile
+            entity: sensor.electricity_failures
+            name: Power Failures
+          - type: markdown
+            content: |
+              **History and analysis** lives in Grafana, not here.
+
+              [Electricity](http://ha-server.home:3000/d/evcc-electricity) ·
+              [Appliances](http://ha-server.home:3000/d/ha-appliances) ·
+              [Climate](http://ha-server.home:3000/d/ha-climate) ·
+              [Solar](http://ha-server.home:3000/d/ha-solar) ·
+              [Maintenance](http://ha-server.home:3000/d/ha-maintenance)
+
+  # --------------------------------------------------------------- 1st floor
+  - title: 1st Floor
+    path: first-floor
+    icon: mdi:home-floor-1
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Master Bedroom
+            heading_style: title
+            icon: mdi:bed-king
+            badges:
+              - type: entity
+                entity: sensor.th_sensor_bedroom_temperature
+              - type: entity
+                entity: sensor.th_sensor_bedroom_humidity
+          - type: tile
+            entity: climate.tado_smart_radiator_thermostat_va2596096000
+            name: Radiator 1
+            features:
+              - type: target-temperature
+          - type: tile
+            entity: climate.tado_smart_radiator_thermostat_va1149061120
+            name: Radiator 2
+            features:
+              - type: target-temperature
+          - type: tile
+            entity: light.master_bedroom_behind_bed
+            name: Behind Bed
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.wled
+            name: WLED
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: select.wled_preset
+            name: WLED Preset
+          - type: tile
+            entity: switch.shelly_plug_bedroom_heater
+            name: Humidifier
+          - type: tile
+            entity: media_player.bedroom
+            name: Sonos
+            features:
+              - type: media-player-volume-slider
+          - type: tile
+            entity: media_player.bedroom_tv_samsung_qn90ba_55
+            name: TV
+          - type: tile
+            entity: sensor.mi_smart_scale_3fd5_mass
+            name: Scale
+          - type: tile
+            entity: vacuum.roborock_s7_maxv
+            name: Vacuum
+            features:
+              - type: vacuum-commands
+                commands:
+                  - start_pause
+                  - stop
+                  - return_home
+                  - locate
+          - type: tile
+            entity: button.roborock_s7_maxv_morning_run
+            name: Morning Run
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Sael's Room
+            heading_style: title
+            icon: mdi:teddy-bear
+            badges:
+              - type: entity
+                entity: sensor.th_sensor_sael_room_temperature
+              - type: entity
+                entity: sensor.th_sensor_sael_room_humidity
+          - type: tile
+            entity: climate.tado_smart_radiator_thermostat_va1270761472
+            name: Radiator
+            features:
+              - type: target-temperature
+          - type: tile
+            entity: sensor.tado_smart_radiator_thermostat_va1270761472_current_temperature
+            name: Thermostat Reading
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Washing Room
+            heading_style: title
+            icon: mdi:washing-machine
+            badges:
+              - type: entity
+                entity: sensor.th_sensor_washer_room_temperature
+              - type: entity
+                entity: sensor.th_sensor_washer_room_humidity
+          - type: tile
+            entity: sensor.washer_samsung_machine_state
+            name: Washer State
+          - type: tile
+            entity: sensor.washer_samsung_completion_time
+            name: Washer Finishes
+          - type: tile
+            entity: sensor.shellyplusplugs_d48afc7bfa8c_switch_0_power
+            name: Washer Draw
+          - type: tile
+            entity: sensor.dryer_machine_state
+            name: Dryer State
+          - type: tile
+            entity: sensor.dryer_completion_time
+            name: Dryer Finishes
+          - type: tile
+            entity: sensor.washer_room_shelly_plug_dryer_power
+            name: Dryer Draw
+          - type: tile
+            entity: switch.shellyplusplugs_d48afc7bfa8c_switch_0
+            name: Washer Plug
+          - type: tile
+            entity: switch.washer_room_shelly_plug_dryer
+            name: Dryer Plug
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Walk-in Closet
+            heading_style: title
+            icon: mdi:wardrobe
+          - type: tile
+            entity: light.sonoff_zbmini_l_switch
+            name: Light
+          - type: tile
+            entity: binary_sensor.ewelink_ms01_motion
+            name: Motion
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Gym
+            heading_style: title
+            icon: mdi:weight-lifter
+          - type: tile
+            entity: media_player.gym
+            name: Sonos
+            features:
+              - type: media-player-volume-slider
+
+  # --------------------------------------------------------------- 2nd floor
+  - title: 2nd Floor
+    path: second-floor
+    icon: mdi:home-floor-2
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Sudheera Office
+            heading_style: title
+            icon: mdi:desktop-tower-monitor
+            badges:
+              - type: entity
+                entity: sensor.th_sensor_sudheera_office_temperature
+              - type: entity
+                entity: sensor.th_sensor_sudheera_office_humidity
+          - type: tile
+            entity: climate.tado_smart_radiator_thermostat_va2428127232
+            name: Radiator
+            features:
+              - type: target-temperature
+          - type: tile
+            entity: switch.sudheera_office_shelly_light_sudheera_office_main
+            name: Main Light
+          - type: tile
+            entity: light.led_bulb_t2_gu10_rgb_cct
+            name: Spot 1
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.led_bulb_t2_gu10_rgb_cct_2
+            name: Spot 2
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.sudheera_office_wall_wled
+            name: Wall WLED
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: select.sudheera_office_wall_wled_preset
+            name: WLED Preset
+          - type: tile
+            entity: switch.shelly_plug_01
+            name: Aircon
+          - type: tile
+            entity: sensor.shelly_plug_01_power
+            name: Aircon Draw
+          - type: tile
+            entity: switch.shellyplug_s_083a8dc1510f
+            name: Server Rack
+          - type: tile
+            entity: sensor.shellyplug_s_083a8dc1510f_power
+            name: Server Rack Draw
+          - type: tile
+            entity: switch.shellyplusplugs_e86beae384d8_switch_0
+            name: Desk
+          - type: tile
+            entity: binary_sensor.esphome_web_2e49bc_nas_backup_server_power_state
+            name: Backup Server
+          - type: tile
+            entity: switch.esphome_web_2e49bc_nas_backup_server_power_btn_soft
+            name: Backup Server Power
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Bathroom
+            heading_style: title
+            icon: mdi:shower
+            badges:
+              - type: entity
+                entity: sensor.th_sensor_bathroom_temperature
+              - type: entity
+                entity: sensor.th_sensor_bathroom_humidity
+          - type: tile
+            entity: climate.bathroom_wifi_thermostat
+            name: Thermostat
+            features:
+              - type: target-temperature
+          - type: tile
+            entity: switch.shelly_light_bathroom
+            name: Light
+          - type: tile
+            entity: fan.itho_wifi_nrg_itho_cefc_nrg_itho_cefc_fan
+            name: Central Ventilation
+            features:
+              - type: fan-speed
+          - type: tile
+            entity: sensor.cve_silent_ventilation_setpoint
+            name: Ventilation Demand
+          - type: tile
+            entity: switch.bathroom
+            name: Perfume Genie
+          - type: tile
+            entity: media_player.bathroom
+            name: Sonos
+            features:
+              - type: media-player-volume-slider
+          - type: tile
+            entity: sensor.io_series_9540
+            name: Toothbrush
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Guest Bedroom
+            heading_style: title
+            icon: mdi:bed
+            badges:
+              - type: entity
+                entity: sensor.th_sensor_guest_bedroom_temperature
+              - type: entity
+                entity: sensor.th_sensor_guest_bedroom_humidity
+          - type: tile
+            entity: climate.tado_smart_radiator_thermostat_va2613200896
+            name: Radiator
+            features:
+              - type: target-temperature
+          - type: tile
+            entity: sensor.tado_smart_radiator_thermostat_va2613200896_current_temperature
+            name: Thermostat Reading
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: 3D Printing Space
+            heading_style: title
+            icon: mdi:printer-3d-nozzle
+            badges:
+              - type: entity
+                entity: sensor.prusa_core_one_2
+          - type: picture-entity
+            entity: camera.prusa_core_one_buddy_cam_home
+            camera_view: auto
+            show_name: false
+            show_state: false
+          - type: tile
+            entity: sensor.prusa_core_one_progress_2
+            name: Progress
+          - type: tile
+            entity: sensor.prusa_core_one_print_finish_2
+            name: Finishes
+          - type: tile
+            entity: sensor.prusa_core_one_filename_2
+            name: File
+          - type: tile
+            entity: switch.shelly_plug_3d_printer
+            name: Printer Plug
+          - type: tile
+            entity: sensor.shelly_plug_3d_printer_power
+            name: Printer Draw
+          - type: tile
+            entity: fan.core_200s_series
+            name: Air Purifier
+            features:
+              - type: fan-speed
+          - type: tile
+            entity: sensor.th_sensor_filament_drybox_1_humidity
+            name: Drybox 1
+          - type: tile
+            entity: sensor.th_sensor_filament_drybox_2_humidity
+            name: Drybox 2
+          - type: tile
+            entity: sensor.th_sensor_filament_drybox_3_humidity
+            name: Drybox 3
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Roof
+            heading_style: title
+            icon: mdi:solar-power-variant
+          - type: tile
+            entity: sensor.envoy_122221038443_current_power_production
+            name: Producing Now
+          - type: tile
+            entity: sensor.envoy_122221038443_energy_production_today
+            name: Today
+          - type: tile
+            entity: sensor.envoy_122221038443_energy_production_last_seven_days
+            name: Last 7 Days
+          - type: tile
+            entity: sensor.envoy_122221038443_lifetime_energy_production
+            name: Lifetime
+          - type: markdown
+            content: |
+              Fifteen micro-inverters report individually. Per-panel output and
+              the underperformer ranking are on the
+              [Solar dashboard](http://ha-server.home:3000/d/ha-solar) in Grafana.
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Soldering Station
+            heading_style: title
+            icon: mdi:soldering-iron
+          - type: markdown
+            content: |
+              Area created, no devices yet.
