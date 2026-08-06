@@ -320,6 +320,49 @@
     group: "{{ server_data_dir_group }}"
   tags: ha-dashboard
 
+# configuration.yaml already carries `frontend: themes: !include_dir_merge_named
+# themes`, but the directory itself has never existed. www/ is served by Home
+# Assistant at /local/, which is how the browser reaches the custom card bundles.
+- name: Create the Home Assistant themes and custom card directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+  loop:
+    - "{{ homeassistant_config_path }}/themes"
+    - "{{ homeassistant_config_path }}/www/custom-cards"
+  tags: ha-dashboard
+
+# Graphite, vendored unchanged from https://github.com/TilmanGriesel/graphite so
+# the look does not depend on that repo staying up. Two variants ship: "Graphite"
+# is always dark, "Graphite Auto" follows the viewer's light/dark preference.
+# Update by re-downloading themes/graphite.yaml and themes/graphite-auto.yaml.
+- name: Copy the Home Assistant themes
+  copy:
+    src: ha-themes/
+    dest: "{{ homeassistant_config_path }}/themes/"
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+  tags: ha-dashboard
+
+# Custom Lovelace cards, vendored rather than installed through HACS so this repo
+# stays the single description of the server. Each bundle still has to be
+# registered once under Settings -> Dashboards -> Resources as a JavaScript
+# module; the ?v= query string is what busts the browser cache after an upgrade.
+#
+#   /local/custom-cards/bubble-card.js?v=3.2.5
+#   /local/custom-cards/mini-graph-card-bundle.js?v=0.13.0
+#
+# Bump the version in both the URL and this comment when replacing a bundle.
+- name: Copy the custom Lovelace card bundles
+  copy:
+    src: ha-www/custom-cards/
+    dest: "{{ homeassistant_config_path }}/www/custom-cards/"
+    owner: "{{ server_data_dir_user }}"
+    group: "{{ server_data_dir_group }}"
+  tags: ha-dashboard
+
 - name: Copy the Home Assistant room dashboard
   copy:
     src: ha-dashboards/home.yaml
